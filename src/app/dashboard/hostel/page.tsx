@@ -22,11 +22,10 @@ export default function HostelDetailsPage() {
   // 1. Accurately resolve the Warden for the current active hostel
   const wardenUser = allottedUsers.find(u => 
     u.role === 'WARDEN' && (
-      u.hostelId === activeHostel?.id || 
       (activeHostel?.wardenMobile && u.mobile === activeHostel?.wardenMobile) || 
-      (activeHostel?.wardenName && u.name.toLowerCase() === activeHostel.wardenName.toLowerCase())
+      (activeHostel?.wardenName && u.name?.trim().toLowerCase() === activeHostel.wardenName.trim().toLowerCase())
     )
-  );
+  ) || allottedUsers.find(u => u.role === 'WARDEN' && u.hostelId === activeHostel?.id);
 
   const wardenAvatar = wardenUser?.avatarUrl || 
     (user?.role === 'WARDEN' && (user.hostelId === activeHostel?.id || !activeHostel) ? user.avatarUrl : '') || 

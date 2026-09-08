@@ -771,13 +771,13 @@ export function DashboardLayout({ children }: Props) {
     ]
   };
 
-  const isChiefWardenRoot = isChiefWarden && !activeHostelId && pathname === '/dashboard';
+  const isChiefWardenHome = isChiefWarden && pathname === '/dashboard';
   const navItems = roleNavItems[user.role as keyof typeof roleNavItems] || [];
 
   return (
     <SidebarProvider>
       <div className={cn("flex min-h-screen bg-background w-full", themeClass)}>
-        {!isChiefWardenRoot && (
+        {!isChiefWardenHome && (
         <Sidebar className="border-r border-sidebar-border shadow-xl">
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">

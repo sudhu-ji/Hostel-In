@@ -30,30 +30,50 @@ export default function ProfilePage() {
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
   const isVisitingHostelAsChief = isChiefWarden && !!activeHostelId;
 
-  // Resolve target displayed user
+  // 1. Accurately resolve target displayed user
   const targetWarden: User | null = React.useMemo(() => {
-    if (!isVisitingHostelAsChief) return null;
+    if (user?.role === 'WARDEN') {
+      return user;
+    }
+    if (!isVisitingHostelAsChief && !activeHostel) return null;
+
+    // Find warden matching activeHostel's official warden mobile or name first
     const found = allottedUsers.find(u => 
-      (u.hostelId === activeHostelId && u.role === 'WARDEN') ||
-      (activeHostel?.wardenMobile && u.mobile === activeHostel.wardenMobile)
-    );
-    if (found) return found;
+      u.role === 'WARDEN' && (
+        (activeHostel?.wardenMobile && u.mobile === activeHostel.wardenMobile) ||
+        (activeHostel?.wardenName && u.name?.trim().toLowerCase() === activeHostel.wardenName.trim().toLowerCase())
+      )
+    ) || allottedUsers.find(u => u.role === 'WARDEN' && u.hostelId === (activeHostelId || activeHostel?.id));
+
+    if (found) {
+      return {
+        ...found,
+        name: activeHostel?.wardenName || found.name,
+        mobile: activeHostel?.wardenMobile || found.mobile,
+        officialMobile: activeHostel?.wardenMobile || found.officialMobile || found.mobile,
+        hostelName: activeHostel?.name || found.hostelName,
+        gender: activeHostel?.wardenGender || found.gender || (activeHostel?.type === 'Girls' ? 'Female' : 'Male'),
+        description: activeHostel?.wardenAbout || found.description || `Official Warden for ${activeHostel?.name || 'this hostel'}`
+      };
+    }
+
+    const currentHostelId = activeHostelId || activeHostel?.id || 'hostel';
     return {
-      id: `warden-${activeHostelId}`,
+      id: `warden-${currentHostelId}`,
       name: activeHostel?.wardenName || "Hostel Warden",
       mobile: activeHostel?.wardenMobile || "N/A",
       officialMobile: activeHostel?.wardenMobile || "N/A",
       role: 'WARDEN' as const,
-      hostelId: activeHostelId || undefined,
+      hostelId: currentHostelId,
       hostelName: activeHostel?.name || "Hostel",
       gender: activeHostel?.wardenGender || (activeHostel?.type === 'Girls' ? 'Female' : 'Male'),
-      description: activeHostel?.wardenAbout || "In charge of overall hostel administration, discipline, and resident welfare.",
-      avatarUrl: `https://picsum.photos/seed/${activeHostelId}/100`,
+      description: activeHostel?.wardenAbout || `Official Warden for ${activeHostel?.name || 'this hostel'}`,
+      avatarUrl: (activeHostel as any)?.wardenAvatarUrl || `https://picsum.photos/seed/${currentHostelId}/100`,
       avatarVerificationStatus: 'verified' as const
     };
-  }, [isVisitingHostelAsChief, allottedUsers, activeHostelId, activeHostel]);
+  }, [isVisitingHostelAsChief, user, allottedUsers, activeHostelId, activeHostel]);
 
-  const displayUser = (isVisitingHostelAsChief ? targetWarden : user) || user;
+  const displayUser = (user?.role === 'WARDEN' ? user : (isVisitingHostelAsChief ? targetWarden : user)) || user;
   const isReadOnly = isVisitingHostelAsChief;
 
   const [isEditing, setIsEditing] = useState(false);
@@ -186,7 +206,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (isReadOnly || !user) return;
     try {
-      await updateAllottedUser({ 
+      const updatedUser: User = { 
         ...user, 
         name, 
         description: desc, 
@@ -198,7 +218,20 @@ export default function ProfilePage() {
           favouritePerson: favPerson.trim(),
           nickname: nickname.trim()
         }
-      });
+      };
+      await updateAllottedUser(updatedUser);
+
+      // If Warden, also sync warden details to the active hostel record so all views stay unified
+      if (user.role === 'WARDEN' && activeHostel && updateHostel) {
+        await updateHostel({
+          ...activeHostel,
+          wardenName: name,
+          wardenMobile: mobile,
+          wardenGender: gender || activeHostel.wardenGender,
+          wardenAbout: desc || activeHostel.wardenAbout
+        });
+      }
+
       setIsEditing(false);
       toast({ title: "Profile Updated", description: "Your profile details and security recovery questions have been saved." });
     } catch (e) {
