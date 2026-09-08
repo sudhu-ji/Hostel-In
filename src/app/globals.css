@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm Ivory / Yellowish-Tinted Light Theme */
+    --background: 43 36% 96%;           /* #FAF7F0 - Luxurious Warm Cream */
+    --foreground: 24 25% 15%;           /* #26211D - Deep Espresso Charcoal */
+    --card: 40 40% 99%;                 /* #FFFDF9 - Warm Crisp Surface */
+    --card-foreground: 24 25% 15%;
+    --popover: 40 40% 99%;
+    --popover-foreground: 24 25% 15%;
+    
+    --primary: 221 83% 53%;             /* Vibrant Executive Royal Blue */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 40 28% 92%;            /* #F4EFE6 - Warm Soft Linen */
+    --secondary-foreground: 24 25% 15%;
+    
+    --muted: 40 28% 92%;
+    --muted-foreground: 28 16% 45%;     /* #787064 - Warm Slate Neutral */
+    
+    --accent: 38 92% 50%;               /* Warm Golden Amber Accent */
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 40 22% 87%;               /* #E5DFD1 - Warm Sand Border */
+    --input: 40 22% 87%;
+    --ring: 221 83% 53%;
+    --radius: 1rem;
+    
+    /* Clean, Warm Light Sidebar */
+    --sidebar-background: 40 35% 97%;   /* #FAF8F2 */
+    --sidebar-foreground: 24 25% 15%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 25% 91%;       /* #F2EDE2 */
+    --sidebar-accent-foreground: 24 25% 15%;
+    --sidebar-border: 40 20% 88%;       /* #E8E2D4 */
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  /* Multi-Hostel Vibrant Theme Accents */
+  .theme-emerald {
+    --primary: 158 75% 38%;
+    --ring: 158 75% 38%;
+    --sidebar-primary: 158 75% 38%;
+  }
+  .theme-purple {
+    --primary: 262 83% 58%;
+    --ring: 262 83% 58%;
+    --sidebar-primary: 262 83% 58%;
+  }
+  .theme-rose {
+    --primary: 346 77% 50%;
+    --ring: 346 77% 50%;
+    --sidebar-primary: 346 77% 50%;
+  }
+  .theme-amber {
+    --primary: 38 92% 50%;
+    --ring: 38 92% 50%;
+    --sidebar-primary: 38 92% 50%;
+  }
+  .theme-cyan {
+    --primary: 189 94% 43%;
+    --ring: 189 94% 43%;
+    --sidebar-primary: 189 94% 43%;
+  }
+  .theme-blue {
+    --primary: 221.2 83.2% 53.3%;
+    --ring: 221.2 83.2% 53.3%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}

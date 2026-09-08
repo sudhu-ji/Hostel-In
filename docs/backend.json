@@ -1,0 +1,891 @@
+{
+  "entities": {
+    "Hostel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hostel",
+      "type": "object",
+      "description": "Represents a physical hostel managed by the application, including its descriptive information and geographical coordinates for features like geofencing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Hostel entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the hostel."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the hostel, its amenities, and policies."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the hostel."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the hostel, used for location-based features like attendance."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the hostel, used for location-based features like attendance."
+        },
+        "geofenceRadiusMeters": {
+          "type": "number",
+          "description": "The radius in meters around the hostel's coordinates defining the geofence for attendance marking."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "address",
+        "latitude",
+        "longitude",
+        "geofenceRadiusMeters"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account within the Hostel In application, encompassing students, wardens, hostel monitors, and staff members.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "hostelId": {
+          "type": "string",
+          "description": "Reference to the Hostel this user belongs to. (Relationship: Hostel 1:N User)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user, used for login and communication.",
+          "format": "email"
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The contact phone number of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the application, determining access and permissions.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isAllottedHostel": {
+          "type": "boolean",
+          "description": "Indicates if a student user has been officially allotted a hostel room by the Warden, required for login."
+        },
+        "profileDescription": {
+          "type": "string",
+          "description": "Additional descriptive information about the user, potentially for staff roles or specific student notes."
+        }
+      },
+      "required": [
+        "id",
+        "hostelId",
+        "name",
+        "email",
+        "role"
+      ]
+    },
+    "Room": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Room",
+      "type": "object",
+      "description": "Represents a specific room within the hostel, including its details, facilities, and any noted scarcities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Room entity."
+        },
+        "hostelId": {
+          "type": "string",
+          "description": "Reference to the Hostel the room belongs to. (Relationship: Hostel 1:N Room)"
+        },
+        "roomNumber": {
+          "type": "string",
+          "description": "The unique number or identifier of the room (e.g., 'A-101')."
+        },
+        "floor": {
+          "type": "string",
+          "description": "The floor on which the room is located."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "The maximum number of students that can be accommodated in the room."
+        },
+        "description": {
+          "type": "string",
+          "description": "General description of the room."
+        },
+        "facilities": {
+          "type": "array",
+          "description": "A list of facilities available in the room (e.g., 'AC', 'Attached Bathroom', 'Wardrobe').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scarcities": {
+          "type": "array",
+          "description": "A list of issues or scarcities noted in the room (e.g., 'Broken Fan', 'Leaky Tap').",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "hostelId",
+        "roomNumber",
+        "capacity"
+      ]
+    },
+    "RoomAllotment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoomAllotment",
+      "type": "object",
+      "description": "Records the assignment of a student to a specific room for a given period.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Room Allotment entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to the student (User entity) to whom the room is allotted. (Relationship: User 1:N RoomAllotment)"
+        },
+        "roomId": {
+          "type": "string",
+          "description": "Reference to the Room entity that is allotted. (Relationship: Room 1:N RoomAllotment)"
+        },
+        "allotmentDate": {
+          "type": "string",
+          "description": "The date and time when the room was allotted to the student.",
+          "format": "date-time"
+        },
+        "vacatingDate": {
+          "type": "string",
+          "description": "The date and time when the student vacated or is scheduled to vacate the room.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if this is the student's current and active room allotment."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "roomId",
+        "allotmentDate",
+        "isActive"
+      ]
+    },
+    "MessFeeRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MessFeeRecord",
+      "type": "object",
+      "description": "Stores records of mess fees for individual students, including payment status and amounts.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Mess Fee Record entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to the student (User entity) for whom the mess fee is recorded. (Relationship: User 1:N MessFeeRecord)"
+        },
+        "period": {
+          "type": "string",
+          "description": "The billing period for the mess fee (e.g., '2024-01' for January 2024, '2024-Q1' for Quarter 1)."
+        },
+        "amountDue": {
+          "type": "number",
+          "description": "The total amount of mess fee due for the specified period."
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Indicates whether the mess fee for this period has been paid."
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "The date and time when the payment was recorded.",
+          "format": "date-time"
+        },
+        "markedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden or Staff) who marked the fee as paid. (Relationship: User 1:N MessFeeRecord)"
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "The date and time when this record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "period",
+        "amountDue",
+        "isPaid"
+      ]
+    },
+    "MessMenu": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MessMenu",
+      "type": "object",
+      "description": "Defines the mess menu for specific dates and meal types.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Mess Menu entity."
+        },
+        "date": {
+          "type": "string",
+          "description": "The specific date for which this menu entry applies.",
+          "format": "date"
+        },
+        "mealType": {
+          "type": "string",
+          "description": "The type of meal (e.g., 'Breakfast', 'Lunch', 'Dinner', 'Snacks').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the menu items for the meal."
+        },
+        "updatedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden, Hostel Monitor, or Staff) who last updated this menu entry. (Relationship: User 1:N MessMenu)"
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "The date and time when this menu entry was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "mealType",
+        "description",
+        "updatedByUserId",
+        "lastUpdatedAt"
+      ]
+    },
+    "Announcement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Announcement",
+      "type": "object",
+      "description": "Represents an official announcement or message posted by authorized personnel to the hostel community.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Announcement entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or subject of the announcement."
+        },
+        "content": {
+          "type": "string",
+          "description": "The full text content of the announcement."
+        },
+        "postedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden or Hostel Monitor) who posted the announcement. (Relationship: User 1:N Announcement)"
+        },
+        "postedAt": {
+          "type": "string",
+          "description": "The date and time when the announcement was posted.",
+          "format": "date-time"
+        },
+        "targetRoles": {
+          "type": "array",
+          "description": "An array of user roles (e.g., 'Student', 'Staff') that are the intended audience for this announcement.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "content",
+        "postedByUserId",
+        "postedAt",
+        "targetRoles"
+      ]
+    },
+    "Complaint": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Complaint",
+      "type": "object",
+      "description": "Stores details of complaints submitted by students regarding hostel facilities or services.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Complaint entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to the student (User entity) who submitted the complaint. (Relationship: User 1:N Complaint)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A brief summary or title of the complaint."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the complaint."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the complaint (e.g., 'New', 'In Progress', 'Resolved', 'Rejected').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "The date and time when the complaint was submitted.",
+          "format": "date-time"
+        },
+        "resolvedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden) who resolved the complaint. (Relationship: User 1:N Complaint)"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "description": "The date and time when the complaint was marked as resolved.",
+          "format": "date-time"
+        },
+        "resolutionNotes": {
+          "type": "string",
+          "description": "Notes from the Warden regarding the resolution of the complaint."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "title",
+        "description",
+        "status",
+        "submittedAt"
+      ]
+    },
+    "PermissionRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PermissionRequest",
+      "type": "object",
+      "description": "Records requests from students for various permissions, such as leave or late entry.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Permission Request entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to the student (User entity) who submitted the permission request. (Relationship: User 1:N PermissionRequest)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of permission being requested (e.g., 'Leave of Absence', 'Late Entry', 'Guest Stay')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed explanation or reason for the permission request."
+        },
+        "requestedAt": {
+          "type": "string",
+          "description": "The date and time when the permission request was submitted.",
+          "format": "date-time"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date and time for the requested permission period.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date and time for the requested permission period.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the permission request (e.g., 'Pending', 'Approved', 'Denied').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "approvedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden) who approved or denied the request. (Relationship: User 1:N PermissionRequest)"
+        },
+        "approvedAt": {
+          "type": "string",
+          "description": "The date and time when the request was approved or denied.",
+          "format": "date-time"
+        },
+        "wardenRemarks": {
+          "type": "string",
+          "description": "Remarks or conditions added by the Warden regarding the permission decision."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "type",
+        "details",
+        "requestedAt",
+        "status"
+      ]
+    },
+    "ExpenditureRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExpenditureRecord",
+      "type": "object",
+      "description": "Logs various expenditures incurred by the hostel, categorized for financial tracking.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expenditure Record entity."
+        },
+        "hostelId": {
+          "type": "string",
+          "description": "Reference to the Hostel where the expenditure was incurred. (Relationship: Hostel 1:N ExpenditureRecord)"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expenditure (e.g., 'Mess', 'Stationary', 'Utilities', 'Maintenance', 'Other').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the expenditure item."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the expenditure."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The date when the expenditure occurred.",
+          "format": "date"
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden or Hostel Monitor) who recorded this expenditure. (Relationship: User 1:N ExpenditureRecord)"
+        },
+        "recordedAt": {
+          "type": "string",
+          "description": "The date and time when this expenditure record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "hostelId",
+        "category",
+        "description",
+        "amount",
+        "transactionDate",
+        "recordedByUserId",
+        "recordedAt"
+      ]
+    },
+    "CleanlinessLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CleanlinessLog",
+      "type": "object",
+      "description": "Tracks the schedule and status of cleanliness activities in different areas of the hostel.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Cleanliness Log entity."
+        },
+        "hostelId": {
+          "type": "string",
+          "description": "Reference to the Hostel where the cleanliness activity took place. (Relationship: Hostel 1:N CleanlinessLog)"
+        },
+        "area": {
+          "type": "string",
+          "description": "The specific area of the hostel that was cleaned or is scheduled for cleaning (e.g., 'Mess Hall', 'Corridor 1st Floor', 'Room A-101')."
+        },
+        "cleanedOn": {
+          "type": "string",
+          "description": "The date when the area was cleaned or inspected.",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the cleanliness for this area and date (e.g., 'Cleaned', 'Scheduled', 'Pending Inspection', 'Needs Cleaning').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or observations related to the cleanliness status."
+        },
+        "recordedByUserId": {
+          "type": "string",
+          "description": "Reference to the user (Warden, Hostel Monitor, or Staff) who recorded this cleanliness log. (Relationship: User 1:N CleanlinessLog)"
+        }
+      },
+      "required": [
+        "id",
+        "hostelId",
+        "area",
+        "cleanedOn",
+        "status",
+        "recordedByUserId"
+      ]
+    },
+    "StudentAttendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StudentAttendance",
+      "type": "object",
+      "description": "Records daily attendance for students, including location and time constraints.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Student Attendance entity."
+        },
+        "studentId": {
+          "type": "string",
+          "description": "Reference to the student (User entity) whose attendance is being recorded. (Relationship: User 1:N StudentAttendance)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date for which the attendance is recorded.",
+          "format": "date"
+        },
+        "isPresent": {
+          "type": "boolean",
+          "description": "Indicates whether the student was marked present for the given date."
+        },
+        "markedAt": {
+          "type": "string",
+          "description": "The exact date and time when the attendance was marked.",
+          "format": "date-time"
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude recorded at the time of attendance marking."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude recorded at the time of attendance marking."
+        }
+      },
+      "required": [
+        "id",
+        "studentId",
+        "date",
+        "isPresent",
+        "markedAt"
+      ]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Stores messages exchanged in the common chat section between students and the Hostel Monitor.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Chat Message entity."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to the user (Student or Hostel Monitor) who sent the message. (Relationship: User 1:N ChatMessage)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The actual text content of the chat message."
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "The date and time when the message was sent.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "content",
+        "sentAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles, including their assigned roles and hostel affiliation. The 'role' and 'hostelId' fields are critical for authorization across the application. Accessible by the user themselves, and viewable/editable by authorized personnel (Warden, Monitor) within the same hostel. Includes denormalized 'hostelId' and 'role' for authorization independence."
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}",
+        "definition": {
+          "entityName": "Hostel",
+          "schema": {
+            "$ref": "#/backend/entities/Hostel"
+          },
+          "description": "The primary collection for hostel definitions. Each document represents a unique hostel with its descriptive and geographical information. Managed primarily by Wardens. Includes denormalized 'hostelId' for authorization independence.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier for the hostel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/rooms/{roomId}",
+        "definition": {
+          "entityName": "Room",
+          "schema": {
+            "$ref": "#/backend/entities/Room"
+          },
+          "description": "Subcollection for rooms within a specific hostel. All documents in this collection pertain to the parent hostel. Viewable by all hostel members, editable by Warden/Hostel Monitor. Includes denormalized 'hostelId' for authorization independence and QAPs.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "roomId",
+              "description": "The unique identifier for the room."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{studentId}/roomAllotments/{allotmentId}",
+        "definition": {
+          "entityName": "RoomAllotment",
+          "schema": {
+            "$ref": "#/backend/entities/RoomAllotment"
+          },
+          "description": "Subcollection storing room allotment records for a specific student. Owned by the student, managed by Warden/Hostel Monitor. Includes denormalized 'hostelId' (derived from the student's User document) and 'studentId' for authorization independence and QAPs, allowing efficient queries for all allotments within a hostel.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student (User) to whom the room is allotted."
+            },
+            {
+              "name": "allotmentId",
+              "description": "The unique identifier for the room allotment record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{studentId}/messFeeRecords/{recordId}",
+        "definition": {
+          "entityName": "MessFeeRecord",
+          "schema": {
+            "$ref": "#/backend/entities/MessFeeRecord"
+          },
+          "description": "Subcollection storing mess fee records for a specific student. Viewable by the student, managed by Warden/Staff/Hostel Monitor. Includes denormalized 'hostelId' (derived from the student's User document) and 'studentId' for authorization independence and QAPs, enabling efficient queries for all mess fee records within a hostel.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student (User) for whom the mess fee is recorded."
+            },
+            {
+              "name": "recordId",
+              "description": "The unique identifier for the mess fee record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/messMenu/{menuId}",
+        "definition": {
+          "entityName": "MessMenu",
+          "schema": {
+            "$ref": "#/backend/entities/MessMenu"
+          },
+          "description": "Subcollection defining the mess menu for specific dates and meal types within a hostel. Viewable by all hostel members, updated by Warden/Hostel Monitor/Staff. Includes denormalized 'hostelId' for authorization independence and QAPs.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "menuId",
+              "description": "The unique identifier for the mess menu entry (e.g., a composite of date and mealType)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/announcements/{announcementId}",
+        "definition": {
+          "entityName": "Announcement",
+          "schema": {
+            "$ref": "#/backend/entities/Announcement"
+          },
+          "description": "Subcollection for official announcements posted to the hostel community. Viewable by specified 'targetRoles' within the hostel. Posted by Warden/Hostel Monitor. Includes denormalized 'hostelId' and 'targetRoles' for authorization independence and QAPs.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "announcementId",
+              "description": "The unique identifier for the announcement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{studentId}/complaints/{complaintId}",
+        "definition": {
+          "entityName": "Complaint",
+          "schema": {
+            "$ref": "#/backend/entities/Complaint"
+          },
+          "description": "Subcollection storing complaints submitted by a specific student. Owned by the student, viewable by the student and by Warden. Includes denormalized 'hostelId' (derived from the student's User document) and 'studentId' for authorization independence and QAPs, enabling Wardens to query all complaints within their hostel.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student (User) who submitted the complaint."
+            },
+            {
+              "name": "complaintId",
+              "description": "The unique identifier for the complaint."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{studentId}/permissionRequests/{requestId}",
+        "definition": {
+          "entityName": "PermissionRequest",
+          "schema": {
+            "$ref": "#/backend/entities/PermissionRequest"
+          },
+          "description": "Subcollection storing permission requests submitted by a specific student. Owned by the student, viewable by the student and by Warden. Includes denormalized 'hostelId' (derived from the student's User document) and 'studentId' for authorization independence and QAPs, enabling Wardens to query all requests within their hostel.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student (User) who submitted the permission request."
+            },
+            {
+              "name": "requestId",
+              "description": "The unique identifier for the permission request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/expenditures/{expenditureId}",
+        "definition": {
+          "entityName": "ExpenditureRecord",
+          "schema": {
+            "$ref": "#/backend/entities/ExpenditureRecord"
+          },
+          "description": "Subcollection logging expenditures incurred by a specific hostel. Managed by Warden/Hostel Monitor. Includes denormalized 'hostelId' for authorization independence and QAPs.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "expenditureId",
+              "description": "The unique identifier for the expenditure record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/cleanlinessLogs/{logId}",
+        "definition": {
+          "entityName": "CleanlinessLog",
+          "schema": {
+            "$ref": "#/backend/entities/CleanlinessLog"
+          },
+          "description": "Subcollection tracking cleanliness activities within a specific hostel. Managed by Warden/Hostel Monitor/Staff. Includes denormalized 'hostelId' for authorization independence and QAPs.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "logId",
+              "description": "The unique identifier for the cleanliness log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{studentId}/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "StudentAttendance",
+          "schema": {
+            "$ref": "#/backend/entities/StudentAttendance"
+          },
+          "description": "Subcollection recording daily attendance for a specific student. Owned and marked by the student, viewable by student, Warden, and Hostel Monitor. Includes denormalized 'hostelId' (derived from the student's User document) and 'studentId' for authorization independence and QAPs, allowing for efficient attendance tracking per hostel.",
+          "params": [
+            {
+              "name": "studentId",
+              "description": "The unique identifier of the student (User) whose attendance is recorded."
+            },
+            {
+              "name": "attendanceId",
+              "description": "The unique identifier for the attendance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hostels/{hostelId}/chatMessages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Subcollection for common chat messages accessible to students and the Hostel Monitor within a specific hostel. Includes denormalized 'hostelId' and 'senderId' for authorization independence and QAPs, ensuring chat messages are confined and discoverable by members of the correct hostel.",
+          "params": [
+            {
+              "name": "hostelId",
+              "description": "The unique identifier of the parent hostel."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the chat message."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore data structure for the Hostel In prioritizes Authorization Independence and Query-as-Authorization-Primitives (QAPs) to ensure robust security, scalability, and debuggability. The core of this design is the strategic denormalization of authorization context into every relevant document.\n\n**Authorization Independence via Denormalization:**\n\n1.  **User Centrality:** The `/users/{userId}` document is paramount. It stores the authenticated user's `role` (as an array of strings) and their associated `hostelId`. This document is the single source of truth for a user's primary authorization attributes and is always directly accessible using `request.auth.uid` in security rules (`get(/users/$(request.auth.uid))`).\n2.  **Hostel Context Denormalization:** For all documents that logically belong to a specific hostel (e.g., `Room`, `MessMenu`, `Announcement`, `ExpenditureRecord`, `CleanlinessLog`, `ChatMessage`), the `hostelId` is explicitly stored within the document's data. This allows security rules to check `resource.data.hostelId` directly against the authenticated user's `hostelId` (obtained from their `/users/{userId}` document) without requiring a `get()` call on a parent `Hostel` document.\n3.  **User-Specific Context Denormalization:** For documents that are specific to a student (e.g., `RoomAllotment`, `MessFeeRecord`, `Complaint`, `PermissionRequest`, `StudentAttendance`), they are structured under `/users/{studentId}/...`. Crucially, these documents also explicitly include the `hostelId` within their own data. This allows Wardens, Hostel Monitors, or Staff to query across all students within *their* hostel (using collection group queries or specific collection queries) by directly filtering on `hostelId`, rather than needing to perform `get()` calls on each student's `User` document.\n\n**Support for Query-as-Authorization-Primitives (QAPs):**\n\nThis denormalization strategy directly enables QAPs. By embedding the `hostelId` into every document that needs to be restricted by a hostel boundary, and by placing user-specific data under `/users/{userId}/...`, security rules can be written to: \n\n*   **Read Hostel-wide data:** `allow read: if request.auth.uid != null && get(/users/$(request.auth.uid)).data.hostelId == resource.data.hostelId;` This rule is efficient because it avoids `get()` on parent resources and directly compares fields. Any user of a given hostel can query for `announcements` or `messMenu` within their `hostelId` and the rule can validate it.\n*   **Manage user-specific data across a hostel:** For Wardens/Monitors to view all `Complaints` for their hostel, they can perform a collection group query: `db.collectionGroup('complaints').where('hostelId', '==', 'wardensHostelId')`. The security rule for `list` operations on the `complaints` collection group would then check `resource.data.hostelId` against the warden's `hostelId`, ensuring only relevant data is returned without client-side filtering and with strong server-side enforcement. The `studentId` in the path ensures that a student can only modify their own documents (`if request.auth.uid == studentId`).\n\n**Structural Segregation & Role-Based Access:**\n\n*   **Top-level `hostels` collection:** Stores `Hostel` documents, primarily managed by Wardens. This segregates global hostel definitions.\n*   **Top-level `users` collection:** Stores `User` profiles. This is the central point for user roles and associated hostel.\n*   **Subcollections for Hostel-level entities:** `rooms`, `messMenu`, `announcements`, `expenditures`, `cleanlinessLogs`, `chatMessages` are direct subcollections of `/hostels/{hostelId}`. This groups all hostel-specific operational data together, allowing for uniform security rules for all documents within these collections (e.g., all `rooms` within a hostel have similar read/write permissions for users within that hostel).\n*   **Subcollections for User-specific entities:** `roomAllotments`, `messFeeRecords`, `complaints`, `permissionRequests`, `studentAttendance` are direct subcollections of `/users/{studentId}`. This clearly establishes ownership and simplifies rules for individual students accessing their own data.\n\nBy adhering to these principles, the structure ensures that security rules are clear, concise, and do not rely on expensive or insecure `get()` calls. This directly addresses the 'data getting lost' issue by providing a predictable and securely enforced environment for data persistence, where write failures are more likely due to explicit rule violations rather than complex, hard-to-debug authorization dependencies. If data is still 'lost', the simplified rules will make debugging client-side write operations and server-side rule logs significantly easier.""
+  }
+}

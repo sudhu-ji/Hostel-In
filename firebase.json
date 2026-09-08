@@ -1,0 +1,31 @@
+{
+  "apphosting": {
+    "backendId": "hostel-in-backend",
+    "rootDir": "/",
+    "ignore": []
+  },
+  "hosting": {
+    "site": "raman-hostel",
+    "public": "out",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

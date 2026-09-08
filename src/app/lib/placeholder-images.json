@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hostel-building",
+      "description": "Hostel In main building facade",
+      "imageUrl": "https://picsum.photos/seed/hostel1/1200/800",
+      "imageHint": "hostel architecture"
+    },
+    {
+      "id": "mess-hall",
+      "description": "Clean and spacious mess hall",
+      "imageUrl": "https://picsum.photos/seed/hostel2/800/600",
+      "imageHint": "dining hall"
+    },
+    {
+      "id": "hostel-room",
+      "description": "Standard hostel room with study area",
+      "imageUrl": "https://picsum.photos/seed/hostel3/800/600",
+      "imageHint": "dormitory room"
+    }
+  ]
+}

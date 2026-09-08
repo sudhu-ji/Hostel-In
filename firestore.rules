@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for auth and roles
+    function isAuth() {
+      return request.auth != null;
+    }
+    
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/activeSessions/$(uid)).data.role;
+    }
+    
+    function getUserId(uid) {
+      return get(/databases/$(database)/documents/activeSessions/$(uid)).data.userId;
+    }
+    
+    function hasRole(role) {
+      return isAuth() && 
+        exists(/databases/$(database)/documents/activeSessions/$(request.auth.uid)) && 
+        getUserRole(request.auth.uid) == role;
+    }
+    
+    function isAdmin() {
+      return hasRole('WARDEN') || hasRole('MONITOR') || hasRole('CHIEF_WARDEN') || isAuth();
+    }
+
+    // activeSessions collection
+    match /activeSessions/{uid} {
+      allow read, write: if isAuth();
+    }
+
+    // users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // hostels collection and nested subcollections (chat, mess, expenditures)
+    match /hostels/{hostelId} {
+      allow read: if true;
+      allow write: if isAuth();
+
+      match /{document=**} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    // shortlistedStudents collection (public allotment display)
+    match /shortlistedStudents/{studentId} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // systemRequests collection
+    match /systemRequests/{requestId} {
+      allow read, write: if isAuth();
+    }
+
+    // system configuration collection
+    match /system/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // notifications collection
+    match /notifications/{notificationId} {
+      allow read, write: if isAuth();
+    }
+
+    // rooms collection
+    match /rooms/{roomId} {
+      allow read, write: if isAuth();
+    }
+
+    // complaints collection
+    match /complaints/{complaintId} {
+      allow read, write: if isAuth();
+    }
+
+    // permissions collection
+    match /permissions/{permissionId} {
+      allow read, write: if isAuth();
+    }
+  }
+}
