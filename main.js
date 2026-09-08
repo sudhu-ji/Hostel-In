@@ -4,10 +4,11 @@ const http = require('http');
 const fs = require('fs');
 
 const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'text/javascript',
-  '.json': 'application/json',
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -18,83 +19,86 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
-  '.webp': 'image/webp'
+  '.webp': 'image/webp',
+  '.txt': 'text/plain; charset=utf-8'
 };
 
 let server;
 
 function startServer(callback) {
   server = http.createServer((req, res) => {
-    let rawPath = decodeURIComponent(req.url.split('?')[0]);
-    if (rawPath === '/' || rawPath === '') {
-      rawPath = '/index.html';
-    }
+    try {
+      let urlPath = decodeURIComponent(req.url.split('?')[0]);
+      if (urlPath === '/' || urlPath === '') {
+        urlPath = '/index.html';
+      }
 
-    const outDir = path.join(__dirname, 'out');
+      const outDir = path.join(__dirname, 'out');
 
-    function serveFile(p, statusCode = 200) {
-      fs.readFile(p, (err, data) => {
-        if (err) {
-          res.statusCode = 500;
-          res.end(`Error loading file: ${err.code}`);
-          return;
-        }
-        const ext = path.extname(p).toLowerCase();
-        res.statusCode = statusCode;
-        res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
-        res.end(data);
-      });
-    }
+      function sendFile(filePath, statusCode = 200) {
+        fs.readFile(filePath, (err, data) => {
+          if (err) {
+            res.statusCode = 500;
+            res.end(`Error reading file: ${err.message}`);
+            return;
+          }
+          const ext = path.extname(filePath).toLowerCase();
+          res.statusCode = statusCode;
+          res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(data);
+        });
+      }
 
-    function tryServe() {
-      // 1. Direct path in outDir
-      let targetPath = path.join(outDir, rawPath);
+      const cleanRel = urlPath.replace(/^\/+/, '');
+      const directPath = path.join(outDir, cleanRel);
       
-      if (fs.existsSync(targetPath)) {
-        const stat = fs.statSync(targetPath);
+      // 1. Direct file match in out/
+      if (fs.existsSync(directPath)) {
+        const stat = fs.statSync(directPath);
         if (stat.isFile()) {
-          return serveFile(targetPath);
+          return sendFile(directPath);
         }
         if (stat.isDirectory()) {
-          const indexInDir = path.join(targetPath, 'index.html');
-          if (fs.existsSync(indexInDir) && fs.statSync(indexInDir).isFile()) {
-            return serveFile(indexInDir);
+          const indexHtml = path.join(directPath, 'index.html');
+          if (fs.existsSync(indexHtml)) {
+            return sendFile(indexHtml);
           }
         }
       }
 
-      // 2. Try adding /index.html (e.g. /dashboard -> /dashboard/index.html)
-      const dirIndexPath = path.join(outDir, rawPath, 'index.html');
-      if (fs.existsSync(dirIndexPath) && fs.statSync(dirIndexPath).isFile()) {
-        return serveFile(dirIndexPath);
+      // 2. Directory index.html match (e.g. /dashboard -> out/dashboard/index.html)
+      const routeIndex = path.join(outDir, cleanRel, 'index.html');
+      if (fs.existsSync(routeIndex)) {
+        return sendFile(routeIndex);
       }
 
-      // 3. Try adding .html (e.g. /dashboard -> /dashboard.html)
-      const htmlPath = targetPath + '.html';
-      if (fs.existsSync(htmlPath) && fs.statSync(htmlPath).isFile()) {
-        return serveFile(htmlPath);
+      // 3. Direct .html file (e.g. /dashboard -> out/dashboard.html)
+      const directHtml = directPath + '.html';
+      if (fs.existsSync(directHtml)) {
+        return sendFile(directHtml);
       }
 
-      // 4. Fallback to 404.html or index.html
-      const fallback404 = path.join(outDir, '404.html');
-      if (fs.existsSync(fallback404) && fs.statSync(fallback404).isFile()) {
-        return serveFile(fallback404, 404);
+      // 4. Client-side SPA navigation fallback
+      const ext = path.extname(urlPath);
+      if (!ext || ext === '.html') {
+        const rootIndex = path.join(outDir, 'index.html');
+        if (fs.existsSync(rootIndex)) {
+          return sendFile(rootIndex, 200);
+        }
       }
 
-      const fallbackIndex = path.join(outDir, 'index.html');
-      if (fs.existsSync(fallbackIndex) && fs.statSync(fallbackIndex).isFile()) {
-        return serveFile(fallbackIndex, 200);
+      // 5. 404 fallback for missing assets
+      const notFoundPage = path.join(outDir, '404.html');
+      if (fs.existsSync(notFoundPage)) {
+        return sendFile(notFoundPage, 404);
       }
 
       res.statusCode = 404;
       res.end('Not Found');
-    }
-
-    try {
-      tryServe();
-    } catch (e) {
+    } catch (err) {
       res.statusCode = 500;
-      res.end('Internal Server Error');
+      res.end(`Internal Server Error: ${err.message}`);
     }
   });
 
