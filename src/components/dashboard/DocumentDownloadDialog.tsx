@@ -992,10 +992,10 @@ export function DocumentDownloadDialog({ user, allottedUsers, isChiefWardenAllHo
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-primary/20 text-primary hover:bg-primary/5 w-full md:w-auto font-black uppercase text-[10px] tracking-widest shadow-sm gap-2 h-10 px-4 rounded-xl"
+          className="border-primary/20 text-primary hover:bg-primary/5 w-full sm:w-auto font-black uppercase text-[10px] sm:text-xs tracking-wider shadow-sm gap-2 h-10 sm:h-11 px-3.5 sm:px-5 rounded-xl flex items-center justify-center"
         >
-          <Download size={14} />
-          {isChiefWardenAllHostels ? "Download Reports (All Hostels)" : "Download Reports"}
+          <Download size={15} className="shrink-0" />
+          <span className="truncate">{isChiefWardenAllHostels ? "Download Reports (All Hostels)" : "Download Reports"}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl bg-card border border-muted/50 shadow-2xl rounded-3xl p-6">

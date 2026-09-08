@@ -840,33 +840,33 @@ export default function DashboardPage() {
             !activeHostelId ? (
               /* ROOT CHIEF WARDEN EXECUTIVE DASHBOARD */
               <div className="space-y-8">
-                {/* 1. TOP PROFILE CARD (Clean, no 'CHIEF WARDEN' before name, only {user?.name}) */}
+                {/* 1. TOP PROFILE CARD (Responsive, clean, no clipping) */}
                 <Card className="border-none shadow-xl overflow-hidden bg-card border border-muted/50">
-                  <CardContent className="p-8">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <CardContent className="p-4 sm:p-6 md:p-8">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-5">
                       
                       {/* Left: Avatar & Identity */}
-                      <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-                        <div className="relative">
-                          <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-2xl cursor-pointer" onClick={handleAvatarClick}>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
+                        <div className="relative shrink-0">
+                          <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-primary/10 shadow-2xl cursor-pointer" onClick={handleAvatarClick}>
                             <AvatarImage src={user?.avatarUrl} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">{user?.name?.[0] || 'C'}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary text-xl sm:text-2xl font-bold">{user?.name?.[0] || 'C'}</AvatarFallback>
                           </Avatar>
                           <button 
                             onClick={handleAvatarClick} 
-                            className="absolute bottom-0 right-0 bg-primary p-2 rounded-full shadow-lg text-primary-foreground hover:scale-110 transition-transform"
+                            className="absolute bottom-0 right-0 bg-primary p-1.5 sm:p-2 rounded-full shadow-lg text-primary-foreground hover:scale-110 transition-transform"
                             title="Change Photo"
                           >
-                            {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                            {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
                           </button>
                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                         </div>
 
-                        <div className="space-y-1.5">
-                          <h1 className="text-3xl font-black font-headline text-foreground flex items-center justify-center sm:justify-start gap-2">
-                            {user?.name || "Chief Warden"}
+                        <div className="space-y-1.5 min-w-0">
+                          <h1 className="text-2xl sm:text-3xl font-black font-headline text-foreground flex items-center justify-center sm:justify-start gap-2 truncate">
+                            <span>{user?.name || "Chief Warden"}</span>
                             {Boolean(user?.avatarUrl && user.avatarUrl.trim().length > 0) && (
-                              <VerifiedBadge size={22} />
+                              <VerifiedBadge size={20} />
                             )}
                           </h1>
                           <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
@@ -875,7 +875,7 @@ export default function DashboardPage() {
                             </Badge>
                             {user?.institutionName && (
                               <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1">
-                                <GraduationCap size={14} className="text-primary/70" /> {user.institutionName}
+                                <GraduationCap size={14} className="text-primary/70 shrink-0" /> <span className="truncate">{user.institutionName}</span>
                               </span>
                             )}
                           </div>
@@ -883,31 +883,35 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Right End: Master Download Report, Edit Profile, & Logout */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 w-full lg:w-auto pt-2 lg:pt-0">
                         {user && (
-                          <DocumentDownloadDialog user={user} allottedUsers={allottedUsers} isChiefWardenAllHostels={true} />
+                          <div className="w-full sm:w-auto">
+                            <DocumentDownloadDialog user={user} allottedUsers={allottedUsers} isChiefWardenAllHostels={true} />
+                          </div>
                         )}
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={openEditChiefProfile}
-                          className="h-11 w-11 rounded-xl border-primary/20 hover:bg-primary/10 hover:border-primary/40 text-primary shadow-sm"
-                          title="Edit Profile Details"
-                        >
-                          <Pencil size={18} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            logout();
-                            router.push('/');
-                          }}
-                          className="h-11 w-11 rounded-xl border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 text-destructive shadow-sm"
-                          title="Logout"
-                        >
-                          <LogOut size={18} />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={openEditChiefProfile}
+                            className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-primary/20 hover:bg-primary/10 hover:border-primary/40 text-primary shadow-sm shrink-0"
+                            title="Edit Profile Details"
+                          >
+                            <Pencil size={17} />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              logout();
+                              router.push('/');
+                            }}
+                            className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 text-destructive shadow-sm shrink-0"
+                            title="Logout"
+                          >
+                            <LogOut size={17} />
+                          </Button>
+                        </div>
                       </div>
 
                     </div>
@@ -916,24 +920,35 @@ export default function DashboardPage() {
 
                 {/* 2. ALL HOSTELS SECTION */}
                 <Card className="border-none shadow-xl bg-card overflow-hidden">
-                  <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between py-5 px-6">
-                    <div>
-                      <CardTitle className="text-2xl font-black font-headline tracking-tight text-primary flex items-center gap-2">
-                        <Building2 size={24} /> All Hostels ({hostels.length})
+                  <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between py-4 sm:py-5 px-4 sm:px-6 gap-3">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-xl sm:text-2xl font-black font-headline tracking-tight text-primary flex items-center gap-2">
+                        <Building2 size={22} className="shrink-0" /> <span className="truncate">All Hostels ({hostels.length})</span>
                       </CardTitle>
-                      <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5">
+                      <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">
                         Visit all hostels in one click.
                       </CardDescription>
                     </div>
                     <Button 
                       size="sm" 
                       onClick={openAddHostelModal} 
-                      className="gap-2 font-black uppercase text-xs tracking-wider shadow-md bg-primary hover:bg-primary/90 text-white h-10 px-4"
+                      className="gap-1.5 font-black uppercase text-xs tracking-wider shadow-md bg-primary hover:bg-primary/90 text-white h-10 px-3.5 sm:px-4 shrink-0 rounded-xl"
                     >
-                      <Plus size={16} /> New Hostel
+                      <Plus size={16} /> <span className="whitespace-nowrap">New Hostel</span>
                     </Button>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
+                    {hostels.length === 0 ? (
+                      <div className="py-12 px-4 text-center space-y-3">
+                        <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner">
+                          <Building2 size={32} />
+                        </div>
+                        <h4 className="text-base font-bold text-foreground font-headline">No Hostels Registered Yet</h4>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                          Click <strong>+ New Hostel</strong> above to add and configure your first hostel.
+                        </p>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {hostels.map((h) => {
                         const themeStyle = HOSTEL_THEME_MAP[h.themeColor] || HOSTEL_THEME_MAP.blue;
@@ -1025,6 +1040,7 @@ export default function DashboardPage() {
                         );
                       })}
                     </div>
+                    )}
                   </CardContent>
                 </Card>
 
