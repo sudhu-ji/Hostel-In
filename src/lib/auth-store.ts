@@ -369,66 +369,63 @@ export function useAuth() {
     };
     seedInitialData();
 
-    // Listen to Hostels (Merge cloud data with local store)
+    // Listen to Hostels (Cloud data is single ground truth, respecting deletedHostelIds)
     const unsubHostels = onSnapshot(collection(db, 'hostels'), (snap) => {
-      const cloudHostels = snap.docs.map(d => ({ ...d.data(), id: d.id } as Hostel));
-      setHostels(prev => {
-        const map = new Map<string, Hostel>();
-        prev.forEach(h => map.set(h.id, h));
-        cloudHostels.forEach(h => map.set(h.id, { ...map.get(h.id), ...h }));
-        return Array.from(map.values());
-      });
-    });
-
-    // Listen to Users (Merge cloud data with local store, respecting deletions)
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const cloudUsers = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User)).filter(u => !u.isRemoved);
-      let currentUserToUpdate: User | null = null;
-      let hostelToUpdate: string | null = null;
-
-      let deletedIds: string[] = [];
+      let deletedHostelIds: string[] = [];
       if (typeof window !== 'undefined') {
         try {
-          const raw = localStorage.getItem('hostelin_deleted_user_ids');
-          if (raw) deletedIds = JSON.parse(raw);
+          const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
+          if (raw) deletedHostelIds = JSON.parse(raw);
         } catch (e) {}
       }
 
-      setAllottedUsers(prev => {
-        const map = new Map<string, User>();
-        // 1. Add cloud users that are not marked deleted
-        cloudUsers.forEach(u => {
-          if (!deletedIds.includes(u.id) && !u.isRemoved) {
-            map.set(u.id, u);
-          }
-        });
-        // 2. Retain local users that are not deleted
-        prev.forEach(u => {
-          if (!deletedIds.includes(u.id) && !u.isRemoved) {
-            if (!map.has(u.id)) {
-              map.set(u.id, u);
-            } else {
-              map.set(u.id, { ...u, ...map.get(u.id) });
-            }
-          }
-        });
-        const combined = Array.from(map.values());
+      const cloudHostels = snap.docs
+        .map(d => ({ ...d.data(), id: d.id } as Hostel))
+        .filter(h => !deletedHostelIds.includes(h.id));
 
-        const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('hostelin_auth') : null;
-        if (storedAuth) {
-          try {
-            const parsed = JSON.parse(storedAuth);
-            const currentUserData = combined.find(u => u.id === parsed.id || (u.mobile === parsed.mobile));
-            if (currentUserData) {
-              currentUserToUpdate = currentUserData;
-              if (currentUserData.role !== 'CHIEF_WARDEN' && currentUserData.hostelId) {
-                hostelToUpdate = currentUserData.hostelId;
-              }
+      setHostels(cloudHostels);
+    });
+
+    // Listen to Users (Cloud data is single ground truth, respecting deletions & hostel cascade)
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      let deletedUserIds: string[] = [];
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('hostelin_deleted_user_ids');
+          if (raw) deletedUserIds = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      let deletedHostelIds: string[] = [];
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
+          if (raw) deletedHostelIds = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      const cloudUsers = snapshot.docs
+        .map(d => ({ ...d.data(), id: d.id } as User))
+        .filter(u => !u.isRemoved && !deletedUserIds.includes(u.id) && !(u.hostelId && deletedHostelIds.includes(u.hostelId)));
+
+      let currentUserToUpdate: User | null = null;
+      let hostelToUpdate: string | null = null;
+
+      setAllottedUsers(cloudUsers);
+
+      const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('hostelin_auth') : null;
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth);
+          const currentUserData = cloudUsers.find(u => u.id === parsed.id || (u.mobile === parsed.mobile));
+          if (currentUserData) {
+            currentUserToUpdate = currentUserData;
+            if (currentUserData.role !== 'CHIEF_WARDEN' && currentUserData.hostelId) {
+              hostelToUpdate = currentUserData.hostelId;
             }
-          } catch (e) {}
-        }
-        return combined;
-      });
+          }
+        } catch (e) {}
+      }
 
       if (currentUserToUpdate) {
         setUser(currentUserToUpdate);
@@ -757,7 +754,40 @@ export function useAuth() {
 
   const deleteHostel = async (id: string) => {
     if (isDemoActive()) return;
-    setHostels(prev => prev.filter(h => h.id !== id));
+
+    // 1. Record in persistent deleted hostel IDs list
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
+        const arr: string[] = raw ? JSON.parse(raw) : [];
+        if (!arr.includes(id)) {
+          arr.push(id);
+          localStorage.setItem('hostelin_deleted_hostel_ids', JSON.stringify(arr));
+        }
+      } catch (e) {}
+    }
+
+    // 2. Remove immediately from local state & storage
+    setHostels(prev => {
+      const next = prev.filter(h => h.id !== id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hostelin_hostels_list', JSON.stringify(next));
+      }
+      return next;
+    });
+
+    // 3. Clear active hostel ID if it was the deleted hostel
+    if (activeHostelId === id) {
+      setActiveHostelId(null);
+    }
+
+    // 4. Cascade delete associated users (warden, students, staff)
+    const associatedUsers = allottedUsers.filter(u => u.hostelId === id);
+    for (const u of associatedUsers) {
+      await removeAllottedUser(u.id);
+    }
+
+    // 5. Delete document from Firestore
     if (db) {
       try {
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));

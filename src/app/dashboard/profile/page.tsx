@@ -21,7 +21,7 @@ import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function ProfilePage() {
-  const { user, allottedUsers, activeHostel, activeHostelId, updateAllottedUser, resetUserPassword } = useAuth();
+  const { user, allottedUsers, activeHostel, activeHostelId, updateAllottedUser, resetUserPassword, updateHostel } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const firebaseApp = useFirebaseApp();
@@ -167,12 +167,20 @@ export default function ProfilePage() {
         }
       }
 
+      const isAuthority = user.role === 'WARDEN' || user.role === 'CHIEF_WARDEN';
       await updateAllottedUser({ 
         ...user, 
         avatarUrl: url,
         avatarPublicId: publicId,
-        avatarVerificationStatus: 'unverified'
+        avatarVerificationStatus: isAuthority ? 'verified' : 'unverified'
       });
+
+      if (user.role === 'WARDEN' && activeHostel && updateHostel) {
+        await updateHostel({
+          ...activeHostel,
+          wardenAvatarUrl: url
+        });
+      }
 
       if (db) {
         const targetRole = user.role === 'STUDENT' ? 'monitor' : 'warden';
@@ -308,12 +316,20 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="space-y-2 flex flex-col items-center">
-                <h2 className="text-2xl font-bold font-headline flex items-center justify-center gap-1.5">
-                  {displayUser?.name}
-                  {displayUser?.role !== 'WARDEN' && displayUser?.avatarVerificationStatus === 'verified' && displayUser?.avatarUrl && (
-                    <VerifiedBadge size={20} />
-                  )}
-                </h2>
+                {(() => {
+                  const hasPhoto = Boolean(displayUser?.avatarUrl && displayUser.avatarUrl.trim().length > 0);
+                  const isAuthority = displayUser?.role === 'WARDEN' || displayUser?.role === 'CHIEF_WARDEN';
+                  const showBlueTick = hasPhoto && (isAuthority || displayUser?.avatarVerificationStatus === 'verified');
+
+                  return (
+                    <h2 className="text-2xl font-bold font-headline flex items-center justify-center gap-1.5">
+                      {displayUser?.name}
+                      {showBlueTick && (
+                        <VerifiedBadge size={20} />
+                      )}
+                    </h2>
+                  );
+                })()}
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                     {displayUser?.role}

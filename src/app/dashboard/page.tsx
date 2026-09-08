@@ -50,7 +50,9 @@ import {
   Users,
   Bed,
   CheckCircle2,
-  Eye
+  Eye,
+  Download,
+  History
 } from 'lucide-react';
 import { cn, handleEnterNextField } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -192,6 +194,26 @@ const HOSTEL_THEME_MAP: Record<string, {
     iconBg: 'bg-pink-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-pink-400'
+  },
+  violet: {
+    borderTop: 'border-t-4 border-t-violet-600',
+    badgeBg: 'bg-violet-100/70',
+    badgeText: 'text-violet-800',
+    badgeBorder: 'border-violet-200',
+    cardBg: 'bg-gradient-to-b from-violet-50/60 via-card to-card',
+    iconBg: 'bg-violet-600 text-white',
+    iconText: 'text-white',
+    hoverBorder: 'hover:border-violet-400'
+  },
+  slate: {
+    borderTop: 'border-t-4 border-t-slate-600',
+    badgeBg: 'bg-slate-100/70',
+    badgeText: 'text-slate-800',
+    badgeBorder: 'border-slate-200',
+    cardBg: 'bg-gradient-to-b from-slate-50/60 via-card to-card',
+    iconBg: 'bg-slate-600 text-white',
+    iconText: 'text-white',
+    hoverBorder: 'hover:border-slate-400'
   }
 };
 
@@ -269,6 +291,15 @@ export default function DashboardPage() {
   const [editNickName, setEditNickName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showWelcomeToast, setShowWelcomeToast] = useState(true);
+  useEffect(() => {
+    if (isChiefWarden && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (!urlParams.get('hostel') && activeHostelId) {
+        setActiveHostelId(null);
+      }
+    }
+  }, [isChiefWarden]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -442,12 +473,20 @@ export default function DashboardPage() {
     setIsUploading(true);
     try {
       const { url, publicId } = await uploadToCloudinary(file);
+      const isAuthority = user.role === 'CHIEF_WARDEN' || user.role === 'WARDEN';
       await updateAllottedUser({
         ...user,
         avatarUrl: url,
         avatarPublicId: publicId,
-        avatarVerificationStatus: user.role === 'CHIEF_WARDEN' ? 'verified' : 'unverified'
+        avatarVerificationStatus: isAuthority ? 'verified' : 'unverified'
       });
+
+      if (user.role === 'WARDEN' && activeHostel && updateHostel) {
+        await updateHostel({
+          ...activeHostel,
+          wardenAvatarUrl: url
+        });
+      }
 
       toast({ title: "Photo Updated", description: "Profile photo updated successfully." });
     } catch (err) {
@@ -826,7 +865,7 @@ export default function DashboardPage() {
                         <div className="space-y-1.5">
                           <h1 className="text-3xl font-black font-headline text-foreground flex items-center justify-center sm:justify-start gap-2">
                             {user?.name || "Chief Warden"}
-                            {user?.avatarUrl && (
+                            {Boolean(user?.avatarUrl && user.avatarUrl.trim().length > 0) && (
                               <VerifiedBadge size={22} />
                             )}
                           </h1>
@@ -843,7 +882,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Right End: Master Download Report & Pencil Icon */}
+                      {/* Right End: Master Download Report, Edit Profile, & Logout */}
                       <div className="flex items-center gap-3">
                         {user && (
                           <DocumentDownloadDialog user={user} allottedUsers={allottedUsers} isChiefWardenAllHostels={true} />
@@ -856,6 +895,18 @@ export default function DashboardPage() {
                           title="Edit Profile Details"
                         >
                           <Pencil size={18} />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            logout();
+                            router.push('/');
+                          }}
+                          className="h-11 w-11 rounded-xl border-destructive/20 hover:bg-destructive/10 hover:border-destructive/40 text-destructive shadow-sm"
+                          title="Logout"
+                        >
+                          <LogOut size={18} />
                         </Button>
                       </div>
 
@@ -1050,8 +1101,21 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        {/* Right: Download Report Button */}
-                        <div className="shrink-0">
+                        {/* Right: Back to All Hostels & Download Report Button */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setActiveHostelId(null);
+                              if (typeof window !== 'undefined') {
+                                window.history.pushState({}, '', '/dashboard');
+                              }
+                            }}
+                            className="gap-1.5 font-bold text-xs rounded-xl shadow-xs"
+                          >
+                            <ArrowLeft size={14} /> All Hostels
+                          </Button>
                           {user && (
                             <DocumentDownloadDialog user={user} allottedUsers={allottedUsers} />
                           )}
@@ -1116,12 +1180,19 @@ export default function DashboardPage() {
                     <div className="text-center md:text-left space-y-2 flex-1">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                          <h1 className="text-3xl font-black font-headline text-foreground flex items-center justify-center md:justify-start gap-2">
-                            {isWarden ? formatWardenDisplayName(user) : user?.name}
-                            {(isWarden || user?.role === 'CHIEF_WARDEN' || user?.avatarVerificationStatus === 'verified') && (
-                              <VerifiedBadge size={22} className="inline-flex ml-1 shrink-0" />
-                            )}
-                          </h1>
+                          {(() => {
+                            const hasPhoto = Boolean(user?.avatarUrl && user.avatarUrl.trim().length > 0);
+                            const isAuthority = isWarden || user?.role === 'CHIEF_WARDEN';
+                            const showBlueTick = hasPhoto && (isAuthority || user?.avatarVerificationStatus === 'verified');
+                            return (
+                              <h1 className="text-3xl font-black font-headline text-foreground flex items-center justify-center md:justify-start gap-2">
+                                {isWarden ? formatWardenDisplayName(user) : user?.name}
+                                {showBlueTick && (
+                                  <VerifiedBadge size={22} className="inline-flex ml-1 shrink-0" />
+                                )}
+                              </h1>
+                            );
+                          })()}
                           <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-1">
                             <Badge variant="outline" className="border-primary/20 text-primary px-3 uppercase tracking-widest text-[10px]">
                               {user?.role}
@@ -1559,63 +1630,141 @@ export default function DashboardPage() {
               </div>
             </form>
 
-            {/* RIGHT COLUMN: REAL-TIME LIVE PREVIEW OF HOSTEL HOMEPAGE */}
-            <div className="md:col-span-5 flex flex-col justify-center">
-              <div className="border border-muted/60 rounded-2xl p-4 bg-muted/10 shadow-inner space-y-3">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
-                    <Eye size={13} /> Live Hostel Preview
-                  </span>
-                  <Badge variant="outline" className="text-[9px] font-mono">Real-time Mockup</Badge>
-                </div>
+            {/* RIGHT COLUMN: LIVE HOSTEL VIEW */}
+            <div className="md:col-span-5 flex flex-col justify-start">
+              {(() => {
+                const currentThemeObj = THEME_COLORS.find(t => t.value === themeColor) || THEME_COLORS[0];
+                const currentThemeStyle = HOSTEL_THEME_MAP[themeColor] || HOSTEL_THEME_MAP.blue;
+                const displayHostelName = hostelName.trim() || "Hostel Name";
+                const displayWardenFull = wardenName.trim() ? `${wardenSalutation} ${wardenName.trim()}` : "Assigned Warden";
+                const displayWardenPhone = wardenMobile.trim() || "Mobile Number";
 
-                {/* Mockup Card */}
-                <div className="rounded-xl overflow-hidden border shadow-lg bg-card transition-all duration-300">
-                  {/* Theme Gradient Header */}
-                  <div className={cn("p-4 text-white bg-gradient-to-r transition-all duration-300", selectedThemeObj.gradient)}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-black text-lg leading-tight drop-shadow-sm">
-                          {hostelName.trim() || "Hostel Name"}
-                        </h4>
-                        <p className="text-[10px] font-semibold opacity-90 uppercase tracking-widest mt-0.5">
-                          {hostelType} Hostel
-                        </p>
+                return (
+                  <div className={cn("rounded-3xl p-4 bg-muted/15 border shadow-inner space-y-3 sticky top-2", `theme-${themeColor}`)}>
+                    {/* 1. TOP CARD (Vibrant real-time replica with theme color accent) */}
+                    <div className={cn(
+                      "bg-card rounded-2xl p-4 border shadow-sm space-y-2.5 transition-all duration-300",
+                      currentThemeStyle.borderTop,
+                      currentThemeStyle.cardBg
+                    )}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          {/* Live Themed Icon Box */}
+                          <div className={cn(
+                            "h-12 w-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-tr transition-all duration-300",
+                            currentThemeObj.gradient
+                          )}>
+                            <Building2 size={22} className="drop-shadow" />
+                          </div>
+
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <h4 className="font-black text-base text-foreground break-words leading-tight flex items-center gap-1.5 font-headline">
+                              <span>{displayHostelName}</span>
+                              <VerifiedBadge size={16} />
+                            </h4>
+                            
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={cn(
+                                "text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider",
+                                currentThemeStyle.badgeBg,
+                                currentThemeStyle.badgeText,
+                                currentThemeStyle.badgeBorder
+                              )}>
+                                {hostelType.toUpperCase()} HOSTEL
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
+                                <GraduationCap size={12} className="shrink-0 text-primary" />
+                                <span className="truncate">{user?.institutionName || "Campus Institution"}</span>
+                              </span>
+                            </div>
+
+                            <p className="text-[10px] text-muted-foreground pt-0.5">
+                              <span className="font-bold text-foreground">Assigned Warden: </span>
+                              <span className="text-primary font-bold">{displayWardenFull}</span>
+                              {displayWardenPhone && (
+                                <span className="font-mono text-muted-foreground ml-1">({displayWardenPhone})</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Download Reports Button */}
+                        <div className="shrink-0">
+                          <div className="border border-border/80 px-2.5 py-1 rounded-xl text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1 bg-background/80 shadow-2xs">
+                            <Download size={11} /> Reports
+                          </div>
+                        </div>
                       </div>
-                      <span className="h-3 w-3 rounded-full bg-white/90 shadow-sm"></span>
                     </div>
-                    {user?.institutionName && (
-                      <p className="text-[10px] font-medium opacity-80 mt-2 truncate">
-                        {user.institutionName}
+
+                    {/* 2. STATS ROW (Complaints & Permissions) */}
+                    <div className="grid grid-cols-2 gap-2 text-left">
+                      <div className="p-3 rounded-2xl border border-border/70 bg-card shadow-xs flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <AlertCircle size={15} />
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-black uppercase tracking-wider text-muted-foreground">COMPLAINTS</p>
+                          <p className="text-base font-black text-foreground leading-none mt-0.5">0</p>
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-2xl border border-border/70 bg-card shadow-xs flex items-center gap-2.5">
+                        <div className={cn("h-8 w-8 rounded-xl text-white flex items-center justify-center shrink-0 shadow-2xs", currentThemeObj.bg)}>
+                          <ShieldCheck size={15} />
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-black uppercase tracking-wider text-muted-foreground">PERMISSIONS</p>
+                          <p className="text-base font-black text-foreground leading-none mt-0.5">0</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. PRESENCE OVERVIEW CARD */}
+                    <div className="p-3 rounded-2xl border border-border/70 bg-card shadow-xs text-left space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-foreground flex items-center gap-1">
+                          <History size={12} className="text-primary" /> Presence Overview
+                        </span>
+                        <span className="text-[8px] font-bold text-primary uppercase flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span> Window Active
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-center">
+                        <div className="bg-muted/30 p-1.5 rounded-lg border border-border/40">
+                          <p className="text-[7.5px] uppercase font-bold text-muted-foreground">Yesterday</p>
+                          <p className="text-[11px] font-black text-primary">0 / 3</p>
+                        </div>
+                        <div className="bg-muted/30 p-1.5 rounded-lg border border-border/40">
+                          <p className="text-[7.5px] uppercase font-bold text-muted-foreground">Morning</p>
+                          <p className="text-[11px] font-black text-primary">0 / 3</p>
+                        </div>
+                        <div className="bg-muted/30 p-1.5 rounded-lg border border-border/40">
+                          <p className="text-[7.5px] uppercase font-bold text-muted-foreground">Evening</p>
+                          <p className="text-[11px] font-black text-primary">0 / 3</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. TODAY'S MESS MENU CARD */}
+                    <div className="p-3 rounded-2xl border border-border/70 bg-card shadow-xs text-left space-y-1.5">
+                      <p className="text-[10px] font-bold text-primary flex items-center gap-1">
+                        <Utensils size={12} /> Today's Mess Menu (Tue)
                       </p>
-                    )}
-                  </div>
-
-                  {/* Warden & Stats Preview */}
-                  <div className="p-4 space-y-3 bg-card text-left">
-                    <div className="bg-muted/30 p-2.5 rounded-lg border text-xs space-y-0.5">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase">Assigned Warden</p>
-                      <p className="font-bold text-foreground">{wardenName.trim() ? `${wardenSalutation} ${wardenName.trim()}` : "Dr. Demo Warden"}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{wardenMobile || "9876543210"}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pt-1 text-center">
-                      <div className="p-2 rounded-lg bg-muted/20 border">
-                        <p className="text-[9px] uppercase font-bold text-muted-foreground">Capacity</p>
-                        <p className="text-sm font-black text-foreground">50 Rooms</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-muted/20 border">
-                        <p className="text-[9px] uppercase font-bold text-muted-foreground">Status</p>
-                        <p className="text-sm font-black text-emerald-500">Active</p>
+                      <div className="bg-muted/20 p-2 rounded-xl text-[9px] space-y-1 border border-muted/40">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-muted-foreground uppercase text-[8px]">BREAKFAST</span>
+                          <span className="text-foreground font-semibold">Paratha</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-bold text-muted-foreground uppercase text-[8px]">DINNER</span>
+                          <span className="text-foreground font-semibold">Special Special</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <p className="text-[10px] text-muted-foreground italic text-center">
-                  Theme color and title update live across the app.
-                </p>
-              </div>
+                );
+              })()}
             </div>
 
           </div>

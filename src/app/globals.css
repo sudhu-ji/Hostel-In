@@ -74,6 +74,36 @@
     --ring: 221.2 83.2% 53.3%;
     --sidebar-primary: 221.2 83.2% 53.3%;
   }
+  .theme-indigo {
+    --primary: 239 84% 67%;
+    --ring: 239 84% 67%;
+    --sidebar-primary: 239 84% 67%;
+  }
+  .theme-orange {
+    --primary: 24 95% 53%;
+    --ring: 24 95% 53%;
+    --sidebar-primary: 24 95% 53%;
+  }
+  .theme-teal {
+    --primary: 174 84% 35%;
+    --ring: 174 84% 35%;
+    --sidebar-primary: 174 84% 35%;
+  }
+  .theme-pink {
+    --primary: 330 81% 60%;
+    --ring: 330 81% 60%;
+    --sidebar-primary: 330 81% 60%;
+  }
+  .theme-violet {
+    --primary: 263 70% 50%;
+    --ring: 263 70% 50%;
+    --sidebar-primary: 263 70% 50%;
+  }
+  .theme-slate {
+    --primary: 215 16% 47%;
+    --ring: 215 16% 47%;
+    --sidebar-primary: 215 16% 47%;
+  }
 }
 
 @layer base {

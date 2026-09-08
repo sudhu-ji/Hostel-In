@@ -349,7 +349,7 @@ export default function StudentsPage() {
                         <div>
                           <p className="font-bold text-sm leading-tight flex items-center gap-1.5">
                             {s.name}
-                            {s.avatarVerificationStatus === 'verified' && s.avatarUrl && (
+                            {Boolean(s.avatarUrl && s.avatarUrl.trim().length > 0) && s.avatarVerificationStatus === 'verified' && (
                               <VerifiedBadge size={14} />
                             )}
                           </p>
@@ -491,7 +491,7 @@ export default function StudentsPage() {
               <div>
                 <DialogTitle className="text-2xl font-bold flex items-center gap-1.5">
                   {selectedStudent?.name}
-                  {selectedStudent?.avatarVerificationStatus === 'verified' && selectedStudent?.avatarUrl && (
+                  {Boolean(selectedStudent?.avatarUrl && selectedStudent.avatarUrl.trim().length > 0) && selectedStudent?.avatarVerificationStatus === 'verified' && (
                     <VerifiedBadge size={20} />
                   )}
                 </DialogTitle>

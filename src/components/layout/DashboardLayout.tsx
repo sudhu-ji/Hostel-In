@@ -122,7 +122,7 @@ export function DashboardLayout({ children }: Props) {
     }
 
     // 5. If already on Home (/dashboard), exit demo session or exit mobile application
-    if (pathname === '/dashboard') {
+    if (cleanPath === '/dashboard') {
       if (isDemoSession) {
         exitDemoSession();
         router.push('/onboarding');
@@ -597,7 +597,7 @@ export function DashboardLayout({ children }: Props) {
         localStorage.removeItem('hostelin_active_hostel_id');
         window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
       }
-      if (pathname === '/dashboard') {
+      if (cleanPath === '/dashboard') {
         return;
       }
     }
@@ -771,8 +771,13 @@ export function DashboardLayout({ children }: Props) {
     ]
   };
 
-  const isChiefWardenHome = isChiefWarden && pathname === '/dashboard';
-  const navItems = roleNavItems[user.role as keyof typeof roleNavItems] || [];
+  const cleanPath = (pathname || '').replace(/\/+$/, '') || '/';
+  const isVisitingHostel = isChiefWarden && !!activeHostelId;
+  // Chief Warden Home UI has no sidebar ONLY when on central overview (no specific hostel active)
+  const isChiefWardenHome = isChiefWarden && !activeHostelId;
+  const navItems = isVisitingHostel 
+    ? roleNavItems.WARDEN 
+    : (roleNavItems[user.role as keyof typeof roleNavItems] || []);
 
   return (
     <SidebarProvider>
@@ -854,9 +859,11 @@ export function DashboardLayout({ children }: Props) {
                 ? (wardenUser?.avatarUrl || (activeHostel as any)?.wardenAvatarUrl || "") 
                 : (user.avatarUrl || "");
 
-              // Blue verification tick is strictly for official authorities (Chief Warden, Warden) OR verified accounts
+              // Blue verification tick strictly requires an uploaded profile photo.
+              // For Chief Warden and Warden, an uploaded photo grants the badge; for others, avatarVerificationStatus must be 'verified'.
+              const hasPhoto = Boolean(displayFooterAvatar && displayFooterAvatar.trim().length > 0);
               const isOfficial = user.role === 'CHIEF_WARDEN' || user.role === 'WARDEN' || isVisitingHostel;
-              const showBlueTick = isOfficial || user.avatarVerificationStatus === 'verified';
+              const showBlueTick = hasPhoto && (isOfficial || user.avatarVerificationStatus === 'verified');
 
               return (
                 <div className="mb-4 px-2 flex items-center gap-3">
@@ -892,7 +899,7 @@ export function DashboardLayout({ children }: Props) {
 
         <SidebarInset className="flex-1 overflow-auto">
           {/* Top Navigation Header */}
-          {(!isChiefWarden || (activeHostelId && pathname !== '/dashboard')) && (
+          {!isChiefWardenHome && (
           <header className="h-16 border-b bg-card/90 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-primary hover:scale-110 transition-transform" />

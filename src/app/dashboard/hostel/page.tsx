@@ -30,7 +30,6 @@ export default function HostelDetailsPage() {
   const wardenAvatar = wardenUser?.avatarUrl || 
     (user?.role === 'WARDEN' && (user.hostelId === activeHostel?.id || !activeHostel) ? user.avatarUrl : '') || 
     (activeHostel as any)?.wardenAvatarUrl || 
-    (activeHostel?.id ? `https://picsum.photos/seed/${activeHostel.id}/100` : '') ||
     '';
 
   const warden = {

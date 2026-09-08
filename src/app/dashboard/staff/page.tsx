@@ -194,7 +194,7 @@ export default function StaffPage() {
                         <div>
                           <p className="font-bold text-sm leading-tight flex items-center gap-1.5">
                             {s.name}
-                            {s.avatarVerificationStatus === 'verified' && s.avatarUrl && (
+                            {Boolean(s.avatarUrl && s.avatarUrl.trim().length > 0) && s.avatarVerificationStatus === 'verified' && (
                               <VerifiedBadge size={14} />
                             )}
                           </p>
@@ -296,7 +296,7 @@ export default function StaffPage() {
               <div>
                 <DialogTitle className="text-2xl font-bold flex items-center gap-1.5">
                   {selectedStaff?.name}
-                  {selectedStaff?.avatarVerificationStatus === 'verified' && selectedStaff?.avatarUrl && (
+                  {Boolean(selectedStaff?.avatarUrl && selectedStaff.avatarUrl.trim().length > 0) && selectedStaff?.avatarVerificationStatus === 'verified' && (
                     <VerifiedBadge size={20} />
                   )}
                 </DialogTitle>
