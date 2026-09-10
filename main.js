@@ -20,7 +20,8 @@ const MIME_TYPES = {
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.webp': 'image/webp',
-  '.txt': 'text/plain; charset=utf-8'
+  '.txt': 'text/plain; charset=utf-8',
+  '.rsc': 'text/x-component; charset=utf-8'
 };
 
 let server;
@@ -35,7 +36,7 @@ function startServer(callback) {
 
       const outDir = path.join(__dirname, 'out');
 
-      function sendFile(filePath, statusCode = 200) {
+      function sendFile(filePath, statusCode = 200, customContentType = null) {
         fs.readFile(filePath, (err, data) => {
           if (err) {
             res.statusCode = 500;
@@ -44,7 +45,7 @@ function startServer(callback) {
           }
           const ext = path.extname(filePath).toLowerCase();
           res.statusCode = statusCode;
-          res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+          res.setHeader('Content-Type', customContentType || MIME_TYPES[ext] || 'application/octet-stream');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.end(data);
         });
@@ -67,16 +68,35 @@ function startServer(callback) {
         }
       }
 
-      // 2. Directory index.html match (e.g. /dashboard -> out/dashboard/index.html)
-      const routeIndex = path.join(outDir, cleanRel, 'index.html');
-      if (fs.existsSync(routeIndex)) {
-        return sendFile(routeIndex);
+      // 2. Next.js App Router RSC flight payload (.txt / .rsc / RSC header)
+      const isRscRequest = urlPath.endsWith('.txt') || 
+                           urlPath.endsWith('.rsc') || 
+                           req.headers['rsc'] === '1' || 
+                           req.headers['next-router-state-tree'];
+      if (isRscRequest) {
+        const baseRoute = cleanRel.replace(/\.(txt|rsc)$/, '').replace(/\/+$/, '');
+        const rscCandidates = [
+          path.join(outDir, baseRoute, 'index.txt'),
+          path.join(outDir, baseRoute + '.txt'),
+          path.join(outDir, baseRoute, 'page.txt')
+        ];
+        for (const candidate of rscCandidates) {
+          if (fs.existsSync(candidate)) {
+            return sendFile(candidate, 200, 'text/x-component; charset=utf-8');
+          }
+        }
       }
 
-      // 3. Direct .html file (e.g. /dashboard -> out/dashboard.html)
-      const directHtml = directPath + '.html';
-      if (fs.existsSync(directHtml)) {
-        return sendFile(directHtml);
+      // 3. HTML Route match (e.g. /dashboard -> out/dashboard/index.html or out/dashboard.html)
+      const routeClean = cleanRel.replace(/\/+$/, '');
+      const htmlCandidates = [
+        path.join(outDir, routeClean, 'index.html'),
+        path.join(outDir, routeClean + '.html')
+      ];
+      for (const candidate of htmlCandidates) {
+        if (fs.existsSync(candidate)) {
+          return sendFile(candidate, 200, 'text/html; charset=utf-8');
+        }
       }
 
       // 4. Client-side SPA navigation fallback
