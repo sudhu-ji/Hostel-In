@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const src = path.join(__dirname, '..', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
-const destDir = path.join(__dirname, '..', 'dist', 'android');
+const destDir = path.join(__dirname, '..', 'builds');
 const dest = path.join(destDir, 'Hostel In.apk');
 
 function copyApk() {
