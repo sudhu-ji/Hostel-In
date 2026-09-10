@@ -38,11 +38,10 @@ service cloud.firestore {
 
     // hostels collection and nested subcollections (chat, mess, expenditures)
     match /hostels/{hostelId} {
-      allow read: if true;
-      allow write: if isAuth();
+      allow read, write: if true;
 
       match /{document=**} {
-        allow read, write: if isAuth();
+        allow read, write: if true;
       }
     }
 

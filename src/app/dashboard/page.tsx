@@ -582,7 +582,8 @@ export default function DashboardPage() {
   // Save Add / Edit Hostel
   const handleSaveHostel = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hostelName.trim() || !wardenName.trim() || wardenMobile.length !== 10) {
+    const cleanMobile = wardenMobile.replace(/\D/g, '').slice(-10);
+    if (!hostelName.trim() || !wardenName.trim() || cleanMobile.length !== 10) {
       toast({ title: "Incomplete Details", description: "Please provide valid hostel and warden details.", variant: "destructive" });
       return;
     }
@@ -596,7 +597,7 @@ export default function DashboardPage() {
           name: hostelName.trim(),
           type: hostelType,
           wardenName: fullWardenName,
-          wardenMobile: wardenMobile.trim(),
+          wardenMobile: cleanMobile,
           wardenGender: wardenGender,
           wardenAbout: wardenAbout.trim() || undefined,
           description: hostelDescription.trim() || editingHostel.description,
@@ -609,7 +610,7 @@ export default function DashboardPage() {
           name: hostelName.trim(),
           type: hostelType,
           wardenName: fullWardenName,
-          wardenMobile: wardenMobile.trim(),
+          wardenMobile: cleanMobile,
           wardenGender: wardenGender,
           wardenAbout: wardenAbout.trim() || undefined,
           themeColor: themeColor,

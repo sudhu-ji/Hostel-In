@@ -9,16 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Search, User } from 'lucide-react';
+import { MessageCircle, Search, User, Trash2 } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FeeManagementPage() {
-  const { user, allottedUsers, updateFeeStatus, activeHostel } = useAuth();
+  const { user, allottedUsers, updateFeeStatus, removeAllottedUser, activeHostel } = useAuth();
+  const [studentToDelete, setStudentToDelete] = useState<any | null>(null);
   const { toast } = useToast();
   const [search, setSearch] = useState("");
 
-  const canEdit = ['WARDEN', 'STAFF'].includes(user?.role || '');
+  const canEdit = ['WARDEN', 'STAFF', 'CHIEF_WARDEN'].includes(user?.role || '');
+  const canDelete = ['WARDEN', 'CHIEF_WARDEN'].includes(user?.role || '');
 
   const handleStatusChange = (id: string, newStatus: FeeStatus) => {
     updateFeeStatus(id, newStatus);
@@ -124,6 +127,18 @@ export default function FeeManagementPage() {
                             <MessageCircle size={14} /> WhatsApp
                           </Button>
                         )}
+
+                        {canDelete && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg"
+                            onClick={() => setStudentToDelete(s)}
+                            title="Delete Resident"
+                          >
+                            <Trash2 size={15} />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -138,6 +153,29 @@ export default function FeeManagementPage() {
             )}
           </CardContent>
         </Card>
+
+        <ConfirmDeleteDialog
+          open={!!studentToDelete}
+          onOpenChange={(isOpen) => !isOpen && setStudentToDelete(null)}
+          title={`Delete ${studentToDelete?.name || 'Resident'}`}
+          itemName={studentToDelete?.name || ''}
+          itemType="student"
+          onSoftDelete={async () => {
+            if (studentToDelete) {
+              await removeAllottedUser(studentToDelete.id);
+              toast({ title: "Resident Removed", description: `${studentToDelete.name} has been removed.` });
+              setStudentToDelete(null);
+            }
+          }}
+          onHardDelete={async () => {
+            if (studentToDelete) {
+              await removeAllottedUser(studentToDelete.id);
+              toast({ title: "Resident Permanently Deleted", description: `${studentToDelete.name} deleted from database.` });
+              setStudentToDelete(null);
+            }
+          }}
+          description={`Are you sure you want to delete ${studentToDelete?.name || 'this resident'}? All room allotment and fee records will be removed.`}
+        />
       </div>
     </DashboardLayout>
   );

@@ -385,7 +385,11 @@ export function useAuth() {
         .map(d => ({ ...d.data(), id: d.id } as Hostel))
         .filter(h => !deletedHostelIds.includes(h.id));
 
-      setHostels(cloudHostels);
+      setHostels(prev => {
+        const cloudIds = new Set(cloudHostels.map(h => h.id));
+        const pendingLocal = prev.filter(h => !cloudIds.has(h.id) && !deletedHostelIds.includes(h.id));
+        return [...cloudHostels, ...pendingLocal];
+      });
     });
 
     // Listen to Users (Cloud data is single ground truth, respecting deletions & hostel cascade)
@@ -656,13 +660,24 @@ export function useAuth() {
   };
 
   const createHostel = async (data: Omit<Hostel, 'id' | 'createdAt'>) => {
-    if (isDemoActive()) return;
     const hostelId = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `hostel-${Date.now()}`;
     const newHostel: Hostel = {
       ...data,
       id: hostelId,
       createdAt: new Date().toISOString()
     };
+
+    // Remove from deleted list if re-creating
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
+        if (raw) {
+          const arr: string[] = JSON.parse(raw);
+          const filtered = arr.filter(id => id !== hostelId);
+          localStorage.setItem('hostelin_deleted_hostel_ids', JSON.stringify(filtered));
+        }
+      } catch (e) {}
+    }
 
     // Instant optimistic local update
     setHostels(prev => {
@@ -695,25 +710,18 @@ export function useAuth() {
 
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          (async () => {
-            await setDoc(doc(db, 'hostels', hostelId), newHostel);
-            if (wardenUser) {
-              await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
-            }
-          })(),
-          timeoutPromise
-        ]);
+        await setDoc(doc(db, 'hostels', hostelId), newHostel);
+        if (wardenUser) {
+          await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
+        }
       } catch (err) {
-        console.warn("Firestore hostel create deferred (saved locally):", err);
+        console.warn("Firestore hostel create fallback (saved locally):", err);
       }
     }
     return hostelId;
   };
 
   const updateHostel = async (hostel: Hostel) => {
-    if (isDemoActive()) return;
 
     // Instant optimistic update
     setHostels(prev => prev.map(h => h.id === hostel.id ? hostel : h));

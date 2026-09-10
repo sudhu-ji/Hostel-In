@@ -74,26 +74,26 @@ export default function CapacitorBackButtonHandler() {
 
           const isChiefWarden = user?.role === 'CHIEF_WARDEN';
           const activeHostelStored = typeof window !== 'undefined' ? localStorage.getItem('hostelin_active_hostel_id') : null;
+          const cleanPath = (pathname || "").replace(/\/+$/, "");
 
-          // 2. TIER 2: If Chief Warden is visiting a specific hostel, return to All Hostels Central Dashboard
-          if (isChiefWarden && activeHostelStored) {
-            console.log("[BACK BUTTON] Chief Warden visiting hostel -> resetting to All Hostels Root...");
+          // 2. TIER 2: If on any sub-page or sub-tab (e.g. /dashboard/students, /dashboard/rooms, /dashboard/fees, etc.)
+          // Returns to the current hostel's home dashboard (keeping visiting hostel active for Chief Warden)
+          if (cleanPath && cleanPath !== "/dashboard" && cleanPath.startsWith("/dashboard")) {
+            console.log("[BACK BUTTON] Navigating back from sub-tab to /dashboard (keeping visiting hostel active)...");
+            router.push('/dashboard');
+            return;
+          }
+
+          // 3. TIER 3: If Chief Warden is at the HOME of a visiting hostel (/dashboard), return to All Hostels Central Dashboard
+          if (cleanPath === "/dashboard" && isChiefWarden && activeHostelStored) {
+            console.log("[BACK BUTTON] Chief Warden at visiting hostel home -> returning to All Hostels Central Dashboard...");
             localStorage.removeItem('hostelin_active_hostel_id');
             window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
             router.push('/dashboard');
             return;
           }
 
-          // 3. TIER 3: If on any sub-page or sub-tab (e.g., /dashboard/students, /dashboard/rooms, /dashboard/profile, etc.)
-          const cleanPath = (pathname || "").replace(/\/+$/, "");
-          if (cleanPath && cleanPath !== "/dashboard" && cleanPath.startsWith("/dashboard")) {
-            console.log("[BACK BUTTON] Navigating back from sub-tab to /dashboard...");
-            router.push('/dashboard');
-            return;
-          }
-
-          // 4. TIER 4: If at Dashboard Home (/dashboard)
-          // FOR ANY USER (Chief Warden, Warden, Student, Monitor, Staff) -> EXIT APP
+          // 4. TIER 4: If at Dashboard Home (/dashboard) without visiting hostel (or any other user at /dashboard) -> EXIT APP
           if (cleanPath === "/dashboard" || cleanPath === "") {
             const isDemo = typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true';
             if (isDemo) {
