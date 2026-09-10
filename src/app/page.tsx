@@ -54,8 +54,12 @@ export default function LoginPage() {
   // Prompt for Notification & Location Permissions immediately on initial app launch/install for all users
   useEffect(() => {
     const initPermissions = async () => {
-      await requestNotificationPermissions();
-      await requestLocationPermissions();
+      try {
+        await requestNotificationPermissions();
+        await requestLocationPermissions();
+      } catch (err) {
+        console.warn("Initial app permission initialization caught safely:", err);
+      }
     };
     initPermissions();
   }, []);

@@ -57,9 +57,10 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
-    // system configuration collection
+    // system configuration collection (readable publicly for session status & allotment flags)
     match /system/{docId} {
-      allow read, write: if isAuth();
+      allow read: if true;
+      allow write: if isAuth();
     }
 
     // notifications collection
