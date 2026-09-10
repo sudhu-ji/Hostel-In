@@ -242,7 +242,7 @@ export default function PermissionsPage() {
 
   // Filter for clean UI: Scope to active hostel and hide approved/rejected requests older than 2 days
   const targetHostelId = activeHostel?.id || user?.hostelId;
-  const filteredRequests = (user?.role === 'WARDEN' || user?.role === 'MONITOR'
+  const filteredRequests = (['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(user?.role || '')
     ? (requests || [])
     : (requests || []).filter(r => r.studentId === user?.id)
   ).filter(r => {
@@ -308,7 +308,7 @@ export default function PermissionsPage() {
                         );
                       })()}
                   </div>
-                  {(user?.role === 'WARDEN' || user?.role === 'MONITOR') && r.status === 'Pending' && (
+                  {(['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(user?.role || '')) && r.status === 'Pending' && (
                     <div className="flex flex-col gap-2">
                       <Button size="sm" variant="outline" className="text-sky-600 font-bold text-[10px] uppercase" onClick={() => handleAction(r, 'Approved')}>Approve</Button>
                       <Button size="sm" variant="outline" className="text-destructive font-bold text-[10px] uppercase" onClick={() => handleAction(r, 'Rejected')}>Reject</Button>

@@ -563,6 +563,7 @@ export function useAuth() {
     }
 
     if (allotted && (allotted.password === password || (!allotted.password && !password))) {
+      localStorage.removeItem('hostelin_is_demo');
       localStorage.setItem('hostelin_auth', JSON.stringify(allotted));
       setUser(allotted);
       if (allotted.hostelId) {
@@ -634,6 +635,7 @@ export function useAuth() {
       const exists = prev.some(u => u.id === found!.id);
       return exists ? prev.map(u => u.id === found!.id ? updatedUser : u) : [...prev, updatedUser];
     });
+    localStorage.removeItem('hostelin_is_demo');
     localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
     setUser(updatedUser);
     if (updatedUser.hostelId) {
@@ -657,6 +659,7 @@ export function useAuth() {
 
   const logout = () => {
     localStorage.removeItem('hostelin_auth');
+    localStorage.removeItem('hostelin_is_demo');
     localStorage.removeItem('hostelin_active_hostel_id');
     setUser(null);
     setActiveHostelId(null);
@@ -849,7 +852,8 @@ export function useAuth() {
     }
 
     if (user?.id === updatedUser.id || (user?.role === 'CHIEF_WARDEN' && updatedUser.role === 'CHIEF_WARDEN')) {
-      localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
+      localStorage.removeItem('hostelin_is_demo');
+    localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
       setUser(updatedUser);
     }
 

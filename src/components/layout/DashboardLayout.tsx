@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-store';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home as HomeIcon, Bed, Utensils, LogOut, Info, Users, UserCheck, CreditCard, Bell, Loader2, UserCircle, AlertCircle, MessageSquare, ShieldCheck, GraduationCap, Check, ArrowLeft } from 'lucide-react';
+import { Home as HomeIcon, Bed, Utensils, LogOut, Info, Users, UserCheck, CreditCard, Bell, Moon, Sun, Loader2, UserCircle, AlertCircle, MessageSquare, ShieldCheck, GraduationCap, Check, ArrowLeft } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser as useFirebaseUser, useFirebaseApp } from '@/firebase';
 import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from '@/components/ui/verified-badge';
 import { collection, query, orderBy, doc, writeBatch, limit, setDoc, deleteDoc, serverTimestamp, onSnapshot, updateDoc, getDocs, where } from 'firebase/firestore';
@@ -38,7 +38,39 @@ export function DashboardLayout({ children }: Props) {
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
 
-  const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true';
+  const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true' && user?.id === 'demo-warden-primary';
+  // Manual Dark / Light Mode state
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const saved = localStorage.getItem('hostelin_theme_mode');
+      if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        setIsDarkMode(false);
+      }
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const next = !prev;
+      if (typeof document !== 'undefined') {
+        if (next) {
+          document.documentElement.classList.add('dark');
+          localStorage.setItem('hostelin_theme_mode', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem('hostelin_theme_mode', 'light');
+        }
+      }
+      return next;
+    });
+  };
+
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
   const currentHostel = activeHostel || hostels[0] || null;
   const themeClass = currentHostel?.themeColor ? `theme-${currentHostel.themeColor}` : 'theme-blue';
@@ -974,47 +1006,44 @@ export function DashboardLayout({ children }: Props) {
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent className="px-3.5 py-4">
-            {/* Elegant light gradient backdrop container behind tabs */}
-            <div className="p-2 rounded-3xl bg-gradient-to-b from-primary/[0.09] via-primary/[0.03] to-primary/[0.07] border border-primary/15 shadow-inner backdrop-blur-xs">
-              <SidebarMenu className="space-y-1.5">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton 
-                        isActive={isActive}
-                        className={cn(
-                          "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
-                          isActive 
-                            ? "bg-gradient-to-r from-primary/25 via-primary/20 to-primary/15 text-primary font-black shadow-sm border border-primary/30 ring-1 ring-primary/20" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-primary/10 font-semibold"
-                        )}
-                        onClick={() => handleNavigation(item.href)}
-                      >
-                        {navLoading === item.href ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
-                        ) : (
-                          <item.icon className={cn(
-                            "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
-                            isActive ? "text-primary scale-110" : "text-muted-foreground group-hover:text-primary"
-                          )} />
-                        )}
-                        <span className={cn(
-                          "font-bold text-xs uppercase tracking-wide font-headline text-left truncate",
-                          isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-primary"
-                        )}>
-                          {item.label}
-                        </span>
-                        {isActive && (
-                          <span className="ml-auto h-2.5 w-2.5 rounded-full bg-primary shrink-0 shadow-sm animate-pulse" />
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </div>
+          <SidebarContent className="px-4 py-4">
+            <SidebarMenu className="space-y-2">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton 
+                      isActive={isActive}
+                      className={cn(
+                        "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
+                        isActive 
+                          ? "bg-primary/15 text-primary font-black shadow-xs border border-primary/25" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold"
+                      )}
+                      onClick={() => handleNavigation(item.href)}
+                    >
+                      {navLoading === item.href ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                      ) : (
+                        <item.icon className={cn(
+                          "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
+                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        )} />
+                      )}
+                      <span className={cn(
+                        "font-bold text-sm tracking-wide font-headline text-left truncate",
+                        isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-foreground"
+                      )}>
+                        {item.label}
+                      </span>
+                      {isActive && (
+                        <span className="ml-auto h-2 w-2 rounded-full bg-primary shrink-0 shadow-xs" />
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border/30">
             {(() => {
@@ -1094,7 +1123,18 @@ export function DashboardLayout({ children }: Props) {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Dark / Light Mode Toggle Button near Notification Bell */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleDarkMode}
+                className="h-10 w-10 rounded-xl text-primary hover:bg-primary/10 transition-colors"
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {isDarkMode ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-primary" />}
+              </Button>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 transition-colors" onClick={markAllRead}>

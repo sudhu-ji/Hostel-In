@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import CapacitorBackButtonHandler from '@/components/CapacitorBackButtonHandler';
-import ThemeModeHandler from '@/components/ThemeModeHandler';
+
 
 export const metadata: Metadata = {
   title: 'Hostel In - A Hostel Administration Platform',
@@ -26,8 +26,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                var savedMode = localStorage.getItem('hostelin_theme_mode');
+                if (savedMode === 'dark') {
                   document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
                 }
               } catch (_) {}
             `,
@@ -39,7 +42,7 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-background text-foreground min-h-screen">
         <FirebaseClientProvider>
-          <ThemeModeHandler />
+          
           <CapacitorBackButtonHandler />
           {children}
           <Toaster />

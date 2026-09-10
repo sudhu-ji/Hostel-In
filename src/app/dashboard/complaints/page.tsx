@@ -230,7 +230,7 @@ export default function ComplaintsPage() {
 
   // Filter for clean UI: Scope to current hostel and hide solved complaints older than 2 days
   const targetHostelId = activeHostel?.id || user?.hostelId;
-  const filteredComplaints = (['WARDEN', 'MONITOR'].includes(user?.role || '')
+  const filteredComplaints = (['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(user?.role || '')
     ? (complaints || [])
     : (complaints || []).filter(c => c.studentId === user?.id)
   ).filter(c => {
@@ -249,7 +249,7 @@ export default function ComplaintsPage() {
           <div className="flex justify-between items-center flex-wrap gap-4">
             <h1 className="text-3xl font-headline font-bold text-primary">Complaints</h1>
             <div className="flex items-center gap-2">
-              {['WARDEN', 'MONITOR'].includes(user?.role || '') && (
+              {['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(user?.role || '') && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -317,7 +317,7 @@ export default function ComplaintsPage() {
                   
                   <div className="mt-6 flex justify-between items-center">
                     <Badge variant={c.status === 'Solved' ? 'default' : 'outline'} className={c.status === 'Solved' ? 'bg-primary text-primary-foreground' : ''}>{c.status}</Badge>
-                    {['WARDEN', 'MONITOR'].includes(user?.role || '') && c.status !== 'Solved' && (
+                    {['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(user?.role || '') && c.status !== 'Solved' && (
                       <Button size="sm" onClick={() => markSolved(c.id)} className="gap-2"><CheckCircle2 className="h-4 w-4" /> Mark as Solved</Button>
                     )}
                   </div>

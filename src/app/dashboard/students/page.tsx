@@ -73,7 +73,7 @@ export default function StudentsPage() {
   const [dateOfLeave, setDateOfLeave] = useState("");
   const [gender, setGender] = useState<'Male' | 'Female'>('Male');
 
-  const hasAdminAccess = ['WARDEN', 'MONITOR'].includes(currentUser?.role || '');
+  const hasAdminAccess = ['WARDEN', 'MONITOR', 'CHIEF_WARDEN'].includes(currentUser?.role || '');
   const isWarden = currentUser?.role === 'WARDEN' || currentUser?.role === 'CHIEF_WARDEN';
   const targetHostelId = activeHostel?.id || currentUser?.hostelId;
 
@@ -325,7 +325,7 @@ export default function StudentsPage() {
               />
             </div>
             {isWarden && (
-              <Button className="gap-2 w-full sm:w-auto shadow-lg bg-accent hover:bg-accent/90" onClick={() => { setName(""); setMobile(""); setRoom(""); setDesc(""); setBranch(""); setIsMonitor(false); setDateOfAllotment(""); setDateOfChange(""); setChangeReason(""); setDateOfLeave(""); setGender("Male"); setSelectedStudent(null); setIsEditOpen(true); }}>
+              <Button type="button" className="gap-2 w-full sm:w-auto shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-11 px-5 rounded-2xl relative z-20 cursor-pointer" onClick={() => { setName(""); setMobile(""); setRoom(""); setDesc(""); setBranch(""); setIsMonitor(false); setDateOfAllotment(""); setDateOfChange(""); setChangeReason(""); setDateOfLeave(""); setGender("Male"); setSelectedStudent(null); setIsEditOpen(true); }}>
                 <UserPlus size={18} /> Add Student
               </Button>
             )}

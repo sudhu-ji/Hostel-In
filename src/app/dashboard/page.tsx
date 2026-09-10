@@ -52,7 +52,9 @@ import {
   CheckCircle2,
   Eye,
   Download,
-  History
+  History,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { cn, handleEnterNextField } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -100,7 +102,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-blue-100/70',
     badgeText: 'text-blue-800',
     badgeBorder: 'border-blue-200',
-    cardBg: 'bg-gradient-to-b from-blue-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-blue-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-blue-400'
@@ -110,7 +112,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-emerald-100/70',
     badgeText: 'text-emerald-800',
     badgeBorder: 'border-emerald-200',
-    cardBg: 'bg-gradient-to-b from-emerald-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-emerald-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-emerald-400'
@@ -120,7 +122,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-purple-100/70',
     badgeText: 'text-purple-800',
     badgeBorder: 'border-purple-200',
-    cardBg: 'bg-gradient-to-b from-purple-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-purple-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-purple-400'
@@ -130,7 +132,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-rose-100/70',
     badgeText: 'text-rose-800',
     badgeBorder: 'border-rose-200',
-    cardBg: 'bg-gradient-to-b from-rose-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-rose-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-rose-400'
@@ -140,7 +142,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-amber-100/70',
     badgeText: 'text-amber-800',
     badgeBorder: 'border-amber-200',
-    cardBg: 'bg-gradient-to-b from-amber-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-amber-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-amber-400'
@@ -150,7 +152,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-cyan-100/70',
     badgeText: 'text-cyan-800',
     badgeBorder: 'border-cyan-200',
-    cardBg: 'bg-gradient-to-b from-cyan-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-cyan-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-cyan-400'
@@ -160,7 +162,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-indigo-100/70',
     badgeText: 'text-indigo-800',
     badgeBorder: 'border-indigo-200',
-    cardBg: 'bg-gradient-to-b from-indigo-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-indigo-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-indigo-400'
@@ -170,7 +172,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-orange-100/70',
     badgeText: 'text-orange-800',
     badgeBorder: 'border-orange-200',
-    cardBg: 'bg-gradient-to-b from-orange-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-orange-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-orange-400'
@@ -180,7 +182,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-teal-100/70',
     badgeText: 'text-teal-800',
     badgeBorder: 'border-teal-200',
-    cardBg: 'bg-gradient-to-b from-teal-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-teal-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-teal-400'
@@ -190,7 +192,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-pink-100/70',
     badgeText: 'text-pink-800',
     badgeBorder: 'border-pink-200',
-    cardBg: 'bg-gradient-to-b from-pink-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-pink-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-pink-400'
@@ -200,7 +202,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-violet-100/70',
     badgeText: 'text-violet-800',
     badgeBorder: 'border-violet-200',
-    cardBg: 'bg-gradient-to-b from-violet-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-violet-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-violet-400'
@@ -210,7 +212,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     badgeBg: 'bg-slate-100/70',
     badgeText: 'text-slate-800',
     badgeBorder: 'border-slate-200',
-    cardBg: 'bg-gradient-to-b from-slate-50/60 via-card to-card',
+    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
     iconBg: 'bg-slate-600 text-white',
     iconText: 'text-white',
     hoverBorder: 'hover:border-slate-400'
@@ -665,7 +667,7 @@ export default function DashboardPage() {
   const fallback = DEFAULT_MENU[todayShortName] || { breakfast: "Standard Morning Selection", dinner: "Standard Evening Selection" };
 
   const MessMenuCard = isCurrentlyClosed ? (
-    <Card className="shadow-md border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-50/40 via-card to-card overflow-hidden rounded-3xl border">
+    <Card className="shadow-md border-t-4 border-t-amber-500 bg-card border-border/80 overflow-hidden rounded-3xl border">
       <CardHeader className="bg-amber-100/50 pb-4">
         <div className="flex items-center gap-2 text-amber-800">
           <Utensils className="h-5 w-5 text-amber-600" />
@@ -678,7 +680,7 @@ export default function DashboardPage() {
       </CardContent>
     </Card>
   ) : (
-    <Card className="shadow-md border-t-4 border-t-rose-500 bg-gradient-to-b from-rose-50/40 via-card to-card overflow-hidden rounded-3xl border">
+    <Card className="shadow-md border-t-4 border-t-rose-500 bg-card border-border/80 overflow-hidden rounded-3xl border">
       <CardHeader className="bg-rose-100/50 pb-4">
         <div className="flex items-center gap-2 text-rose-800">
           <Utensils className="h-5 w-5 text-rose-600" />
@@ -897,6 +899,25 @@ export default function DashboardPage() {
                           </div>
                         )}
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const isDark = document.documentElement.classList.contains('dark');
+                              if (isDark) {
+                                document.documentElement.classList.remove('dark');
+                                localStorage.setItem('hostelin_theme_mode', 'light');
+                              } else {
+                                document.documentElement.classList.add('dark');
+                                localStorage.setItem('hostelin_theme_mode', 'dark');
+                              }
+                            }}
+                            className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-primary/20 hover:bg-primary/10 text-primary shadow-sm shrink-0"
+                            title="Toggle Dark / Light Mode"
+                          >
+                            <Sun className="h-5 w-5 dark:hidden text-amber-500" />
+                            <Moon className="h-5 w-5 hidden dark:block text-primary" />
+                          </Button>
                           <Button
                             variant="outline"
                             size="icon"
@@ -1821,19 +1842,22 @@ function StatCard({ title, value, icon: Icon, color, onClick }: { title: string,
   const isComplaints = title.toLowerCase().includes('complaint');
   const isPermissions = title.toLowerCase().includes('permission');
   
-  // Complaints: Soft Reddish (Rose) | Permissions: Soft Bluish (Blue)
-  const borderTopClass = isComplaints ? 'border-t-4 border-t-rose-500 bg-gradient-to-b from-rose-50/50 via-card to-card hover:border-rose-400' :
-                         isPermissions ? 'border-t-4 border-t-primary bg-gradient-to-b from-primary/5 via-card to-card hover:border-primary/50' :
-                         'border-t-4 border-t-primary bg-gradient-to-b from-primary/5 via-card to-card';
+  const borderTopClass = isComplaints 
+    ? 'border-t-4 border-t-rose-500 bg-card hover:border-rose-400' 
+    : isPermissions 
+    ? 'border-t-4 border-t-primary bg-card hover:border-primary/60' 
+    : 'border-t-4 border-t-primary bg-card';
 
-  const iconBgClass = isComplaints ? 'bg-rose-500 text-white' :
-                      isPermissions ? 'bg-primary text-primary-foreground' :
-                      color;
+  const iconBgClass = isComplaints 
+    ? 'bg-rose-500 text-white shadow-md' 
+    : isPermissions 
+    ? 'bg-primary text-primary-foreground shadow-md' 
+    : color;
 
   return (
     <Card 
       className={cn(
-        "overflow-hidden shadow-sm transition-all duration-300 cursor-pointer rounded-3xl group border",
+        "overflow-hidden shadow-sm transition-all duration-300 cursor-pointer rounded-3xl group border border-border/80",
         borderTopClass,
         "hover:-translate-y-1 hover:shadow-md"
       )}
@@ -1841,18 +1865,18 @@ function StatCard({ title, value, icon: Icon, color, onClick }: { title: string,
     >
       <CardContent className="p-6 flex items-center gap-5">
         <div className={cn("p-4 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm", iconBgClass)}>
-          <Icon size={26} />
+          <Icon size={28} />
         </div>
         <div className="flex-1">
           <p className={cn(
-            "text-[10px] uppercase font-black tracking-widest mb-1 font-headline",
-            isComplaints ? "text-rose-700" : isPermissions ? "text-primary" : "text-muted-foreground"
+            "text-xs sm:text-sm uppercase font-black tracking-wider mb-1 font-headline",
+            isComplaints ? "text-rose-600 dark:text-rose-400" : isPermissions ? "text-primary" : "text-muted-foreground"
           )}>
             {title}
           </p>
           <div className="flex items-center justify-between">
-            <p className="text-3xl font-black text-foreground font-headline">{value}</p>
-            <ArrowRight size={18} className="text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+            <p className="text-3xl sm:text-4xl font-black text-foreground font-headline leading-none">{value}</p>
+            <ArrowRight size={20} className="text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
           </div>
         </div>
       </CardContent>
