@@ -391,6 +391,13 @@ export function useAuth() {
       setHostels(prev => {
         const cloudIds = new Set(cloudHostels.map(h => h.id));
         const pendingLocal = prev.filter(h => !cloudIds.has(h.id) && !deletedHostelIds.includes(h.id));
+        
+        // Auto-sync any local hostels to cloud so they persist permanently
+        if (db && pendingLocal.length > 0 && typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') !== 'true') {
+          pendingLocal.forEach(h => {
+            setDoc(doc(db, 'hostels', h.id), h, { merge: true }).catch(err => console.warn("Auto-sync hostel to cloud deferred:", err));
+          });
+        }
         return [...cloudHostels, ...pendingLocal];
       });
     });
@@ -420,7 +427,18 @@ export function useAuth() {
       let currentUserToUpdate: User | null = null;
       let hostelToUpdate: string | null = null;
 
-      setAllottedUsers(cloudUsers);
+      setAllottedUsers(prev => {
+        const cloudIds = new Set(cloudUsers.map(u => u.id));
+        const pendingLocal = prev.filter(u => !cloudIds.has(u.id) && !deletedUserIds.includes(u.id));
+        
+        // Auto-sync any local users to cloud so they persist permanently
+        if (db && pendingLocal.length > 0 && typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') !== 'true') {
+          pendingLocal.forEach(u => {
+            setDoc(doc(db, 'users', u.id), u, { merge: true }).catch(err => console.warn("Auto-sync user to cloud deferred:", err));
+          });
+        }
+        return [...cloudUsers, ...pendingLocal];
+      });
 
       const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('hostelin_auth') : null;
       if (storedAuth) {
@@ -806,11 +824,7 @@ export function useAuth() {
     // 5. Delete document from Firestore
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          deleteDoc(doc(db, 'hostels', id)),
-          timeoutPromise
-        ]);
+        await deleteDoc(doc(db, 'hostels', id));
       } catch (err) {
         console.warn("Firestore hostel delete deferred (saved locally):", err);
       }
@@ -819,14 +833,19 @@ export function useAuth() {
 
   const addAllottedUser = async (newUser: User) => {
     if (isDemoActive()) return;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_deleted_user_ids');
+        if (raw) {
+          const arr: string[] = JSON.parse(raw);
+          localStorage.setItem('hostelin_deleted_user_ids', JSON.stringify(arr.filter(id => id !== newUser.id)));
+        }
+      } catch (e) {}
+    }
     setAllottedUsers(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          setDoc(doc(db, 'users', newUser.id), newUser),
-          timeoutPromise
-        ]);
+        await setDoc(doc(db, 'users', newUser.id), newUser, { merge: true });
       } catch (err) {
         console.warn("Firestore user add deferred (saved locally):", err);
       }
@@ -859,11 +878,7 @@ export function useAuth() {
 
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          setDoc(doc(db, 'users', updatedUser.id), updatedUser, { merge: true }),
-          timeoutPromise
-        ]);
+        await setDoc(doc(db, 'users', updatedUser.id), updatedUser, { merge: true });
       } catch (err) {
         console.warn("Firestore sync deferred (persisted locally):", err);
       }
@@ -904,11 +919,7 @@ export function useAuth() {
     // 3. Delete from Firestore
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          deleteDoc(doc(db, 'users', id)),
-          timeoutPromise
-        ]);
+        await deleteDoc(doc(db, 'users', id));
       } catch (err) {
         console.warn("Firestore user delete deferred (saved locally):", err);
       }

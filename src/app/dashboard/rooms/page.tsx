@@ -3,7 +3,7 @@
 import { UserVerifiedBadge } from '@/components/ui/verified-badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth, User } from '@/lib/auth-store';
 import { handleEnterNextField } from '@/lib/utils';
@@ -48,7 +48,27 @@ export default function RoomsPage() {
   const db = useFirestore();
 
   const roomsQuery = useMemoFirebase(() => db ? collection(db, 'rooms') : null, [db]);
-  const { data: rooms, isLoading } = useCollection<Room>(roomsQuery);
+  const { data: cloudRooms, isLoading } = useCollection<Room>(roomsQuery);
+  const [localRooms, setLocalRooms] = useState<Room[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('hostelin_rooms');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (cloudRooms && cloudRooms.length > 0) {
+      setLocalRooms(cloudRooms);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hostelin_rooms', JSON.stringify(cloudRooms));
+      }
+    }
+  }, [cloudRooms]);
+
+  const rooms = cloudRooms && cloudRooms.length > 0 ? cloudRooms : localRooms;
   
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -198,11 +218,8 @@ export default function RoomsPage() {
 
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          setDoc(doc(db, 'rooms', trimmedId), newRoomData, { merge: true }),
-          timeoutPromise
-        ]);
+        await setDoc(doc(db, 'rooms', trimmedId), newRoomData, { merge: true });
+        if (typeof window !== 'undefined') { setLocalRooms(prev => [...prev.filter(r => r.id !== trimmedId), newRoomData]); }
       } catch (e) {
         console.warn("Firestore room save deferred:", e);
       }

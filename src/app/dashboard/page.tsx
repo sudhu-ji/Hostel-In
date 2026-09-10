@@ -667,11 +667,11 @@ export default function DashboardPage() {
   const fallback = DEFAULT_MENU[todayShortName] || { breakfast: "Standard Morning Selection", dinner: "Standard Evening Selection" };
 
   const MessMenuCard = isCurrentlyClosed ? (
-    <Card className="shadow-md border-t-4 border-t-amber-500 bg-card border-border/80 overflow-hidden rounded-3xl border">
-      <CardHeader className="bg-amber-100/50 pb-4">
-        <div className="flex items-center gap-2 text-amber-800">
-          <Utensils className="h-5 w-5 text-amber-600" />
-          <CardTitle className="text-lg font-black font-headline">Mess Menu (Suspended)</CardTitle>
+    <Card className="shadow-md border-t-4 border-t-amber-500 bg-card border-border/80 overflow-hidden rounded-3xl border card-themed-glow">
+      <CardHeader className="bg-gradient-to-r from-amber-500/15 via-amber-500/8 to-transparent pb-4 border-b border-amber-500/20">
+        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+          <Utensils className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <CardTitle className="text-lg font-black font-headline text-foreground">Mess Menu (Suspended)</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-6 text-center space-y-2">
@@ -680,11 +680,11 @@ export default function DashboardPage() {
       </CardContent>
     </Card>
   ) : (
-    <Card className="shadow-md border-t-4 border-t-rose-500 bg-card border-border/80 overflow-hidden rounded-3xl border">
-      <CardHeader className="bg-rose-100/50 pb-4">
-        <div className="flex items-center gap-2 text-rose-800">
-          <Utensils className="h-5 w-5 text-rose-600" />
-          <CardTitle className="text-lg font-black font-headline">Today's Mess Menu ({todayShortName})</CardTitle>
+    <Card className="shadow-md border-t-4 border-t-primary bg-card border-border/80 overflow-hidden rounded-3xl border card-themed-glow">
+      <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/8 to-transparent pb-4 border-b border-primary/20">
+        <div className="flex items-center gap-2 text-primary">
+          <Utensils className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg font-black font-headline text-foreground">Today's Mess Menu ({todayShortName})</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
