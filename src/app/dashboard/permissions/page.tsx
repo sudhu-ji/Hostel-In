@@ -265,7 +265,7 @@ export default function PermissionsPage() {
           
           <div className="space-y-4">
             {filteredRequests.map((r) => (
-              <Card key={r.id} className="shadow-sm border-none border-l-4 border-l-blue-500 bg-card">
+              <Card key={r.id} className="shadow-sm border-none border-l-4 border-l-primary bg-card">
                 <CardContent className="p-6 flex justify-between items-start gap-4">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">

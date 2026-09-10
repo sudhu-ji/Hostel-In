@@ -445,7 +445,7 @@ export default function HostelDetailsPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold text-xs rounded-xl"
+                          className="gap-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold text-xs rounded-xl"
                           onClick={() => openWhatsApp(warden.officialMobile || warden.mobile)}
                         >
                           <MessageCircle size={14} /> WhatsApp
@@ -497,7 +497,7 @@ export default function HostelDetailsPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold text-xs rounded-xl"
+                            className="gap-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold text-xs rounded-xl"
                             onClick={() => openWhatsApp(headStaff.mobile)}
                           >
                             <MessageCircle size={14} /> WhatsApp
@@ -550,7 +550,7 @@ export default function HostelDetailsPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold text-xs rounded-xl"
+                            className="gap-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold text-xs rounded-xl"
                             onClick={() => openWhatsApp(monitor.mobile)}
                           >
                             <MessageCircle size={14} /> WhatsApp

@@ -43,6 +43,18 @@ export function DashboardLayout({ children }: Props) {
   const currentHostel = activeHostel || hostels[0] || null;
   const themeClass = currentHostel?.themeColor ? `theme-${currentHostel.themeColor}` : 'theme-blue';
 
+  // Apply dynamic hostel theme class to documentElement so all portals, dialogs, and components adopt it
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      const existingThemes = Array.from(root.classList).filter(c => c.startsWith('theme-'));
+      existingThemes.forEach(c => root.classList.remove(c));
+      if (themeClass) {
+        root.classList.add(themeClass);
+      }
+    }
+  }, [themeClass]);
+
   // Run periodic database cleanups (Warden clients execute this once a day)
   useEffect(() => {
     if (!db || !user || user.role !== 'WARDEN') return;
@@ -108,21 +120,22 @@ export function DashboardLayout({ children }: Props) {
       }
     }
 
-    // 3. If Chief Warden is viewing a specific hostel detail on dashboard, return to All Hostels grid
-    if (isChiefWarden && activeHostelId) {
+    const cleanPath = (pathname || "").replace(/\/+$/, "");
+
+    // 3. If on ANY sub-tab (e.g. /dashboard/students, /dashboard/rooms, etc.), navigate back in history just like other users!
+    if (cleanPath && cleanPath !== '/dashboard' && cleanPath.startsWith('/dashboard')) {
+      router.back();
+      return;
+    }
+
+    // 4. If Chief Warden is at the HOME of a visiting hostel (/dashboard), return to his own Central Dashboard!
+    if (cleanPath === '/dashboard' && isChiefWarden && activeHostelId) {
       setActiveHostelId(null);
-      router.push('/dashboard');
       return;
     }
 
-    // 4. If on ANY sub-tab (e.g. /dashboard/students, /dashboard/rooms, etc.), navigate directly to Home (/dashboard)
-    if (pathname !== '/dashboard') {
-      router.push('/dashboard');
-      return;
-    }
-
-    // 5. If already on Home (/dashboard), exit demo session or exit mobile application
-    if (cleanPath === '/dashboard') {
+    // 5. If already on Central Home (/dashboard), exit demo session or exit mobile application
+    if (cleanPath === '/dashboard' || cleanPath === '') {
       if (isDemoSession) {
         exitDemoSession();
         router.push('/onboarding');

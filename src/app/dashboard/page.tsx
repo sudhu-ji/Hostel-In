@@ -414,23 +414,8 @@ export default function DashboardPage() {
       }
     }
 
-    const handlePopState = () => {
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const hostelParam = urlParams.get('hostel');
-        if (!hostelParam) {
-          console.log('[POPSTATE] Restoring Chief Warden Home UI...');
-          setActiveHostelId(null);
-          localStorage.removeItem('hostelin_active_hostel_id');
-          window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
-        } else {
-          setActiveHostelId(hostelParam);
-        }
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    // Clean URL query sync without destroying activeHostelId prematurely
+    return () => {};
   }, [isChiefWarden, activeHostelId, setActiveHostelId]);
 
   useEffect(() => {
@@ -1079,12 +1064,7 @@ export default function DashboardPage() {
                             ) : (
                               <div className={cn(
                                 "h-24 w-24 rounded-2xl flex items-center justify-center text-white shadow-2xl border-4 border-card",
-                                activeHostel?.themeColor === 'rose' ? 'bg-gradient-to-tr from-rose-600 to-pink-500' :
-                                activeHostel?.themeColor === 'emerald' ? 'bg-gradient-to-tr from-emerald-600 to-teal-500' :
-                                activeHostel?.themeColor === 'purple' ? 'bg-gradient-to-tr from-purple-600 to-indigo-500' :
-                                activeHostel?.themeColor === 'amber' ? 'bg-gradient-to-tr from-amber-600 to-orange-500' :
-                                activeHostel?.themeColor === 'cyan' ? 'bg-gradient-to-tr from-cyan-600 to-blue-500' :
-                                'bg-gradient-to-tr from-blue-600 to-indigo-600'
+                                 (THEME_COLORS.find(t => t.value === activeHostel?.themeColor)?.bg || 'bg-primary') + ' text-primary-foreground' 
                               )}>
                                 <Building2 size={42} className="drop-shadow" />
                               </div>
@@ -1158,7 +1138,7 @@ export default function DashboardPage() {
                         title="Permissions" 
                         value={permsDocs?.filter(p => p.status === 'Pending' && (!currentHostelId || p.hostelId === currentHostelId || (!p.hostelId && currentHostelId === 'demo-hostel'))).length.toString() || "0"} 
                         icon={ShieldCheck} 
-                        color="bg-blue-600"
+                        color="bg-primary"
                         onClick={() => router.push('/dashboard/permissions')}
                       />
                     </div>
@@ -1259,7 +1239,7 @@ export default function DashboardPage() {
                           title="Permissions" 
                           value={permsDocs?.filter(p => p.status === 'Pending' && (!currentHostelId || p.hostelId === currentHostelId || (!p.hostelId && currentHostelId === 'demo-hostel'))).length.toString() || "0"} 
                           icon={ShieldCheck} 
-                          color="bg-blue-600"
+                          color="bg-primary"
                           onClick={() => router.push('/dashboard/permissions')}
                         />
                       </div>
@@ -1326,7 +1306,7 @@ export default function DashboardPage() {
                         : (permsDocs?.filter(p => p.studentId === user?.id && p.status === 'Pending').length.toString() || "0")
                       } 
                       icon={ShieldCheck} 
-                      color="bg-blue-600"
+                      color="bg-primary"
                       onClick={() => router.push('/dashboard/permissions')}
                     />
                   </div>
@@ -1833,11 +1813,11 @@ function StatCard({ title, value, icon: Icon, color, onClick }: { title: string,
   
   // Complaints: Soft Reddish (Rose) | Permissions: Soft Bluish (Blue)
   const borderTopClass = isComplaints ? 'border-t-4 border-t-rose-500 bg-gradient-to-b from-rose-50/50 via-card to-card hover:border-rose-400' :
-                         isPermissions ? 'border-t-4 border-t-blue-500 bg-gradient-to-b from-blue-50/50 via-card to-card hover:border-blue-400' :
+                         isPermissions ? 'border-t-4 border-t-primary bg-gradient-to-b from-primary/5 via-card to-card hover:border-primary/50' :
                          'border-t-4 border-t-primary bg-gradient-to-b from-primary/5 via-card to-card';
 
   const iconBgClass = isComplaints ? 'bg-rose-500 text-white' :
-                      isPermissions ? 'bg-blue-600 text-white' :
+                      isPermissions ? 'bg-primary text-primary-foreground' :
                       color;
 
   return (
@@ -1856,7 +1836,7 @@ function StatCard({ title, value, icon: Icon, color, onClick }: { title: string,
         <div className="flex-1">
           <p className={cn(
             "text-[10px] uppercase font-black tracking-widest mb-1 font-headline",
-            isComplaints ? "text-rose-700" : isPermissions ? "text-blue-700" : "text-muted-foreground"
+            isComplaints ? "text-rose-700" : isPermissions ? "text-primary" : "text-muted-foreground"
           )}>
             {title}
           </p>

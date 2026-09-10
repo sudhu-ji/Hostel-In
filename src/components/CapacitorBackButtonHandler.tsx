@@ -1,26 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-store";
 
 export default function CapacitorBackButtonHandler() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
-  
-  // Track route history stack for hierarchical back navigation
-  const historyRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    if (pathname) {
-      // Avoid pushing consecutive duplicates
-      const currentStack = historyRef.current;
-      if (currentStack[currentStack.length - 1] !== pathname) {
-        historyRef.current = [...currentStack, pathname].slice(-15);
-      }
-    }
-  }, [pathname]);
+  const { user, activeHostelId, setActiveHostelId } = useAuth();
 
   useEffect(() => {
     let activeListener: any = null;
@@ -36,14 +23,13 @@ export default function CapacitorBackButtonHandler() {
         activeListener = await App.addListener("backButton", () => {
           console.log(`[BACK BUTTON PRESSED] Current Path: "${pathname}", Role: ${user?.role}`);
 
-          // 1. TIER 1: Check for open modals, dialogs, sheets, or alert-dialogs (excluding persistent layout elements)
+          // 1. TIER 1: Close active modals, dialogs, drawers, or mobile sidebars first
           const openDialog = document.querySelector(
             '[data-radix-portal] [role="dialog"], [data-radix-dialog-content], [data-radix-alert-dialog-content], .modal-overlay'
           ) as HTMLElement;
 
           if (openDialog) {
             console.log("[BACK BUTTON] Closing active dialog/modal overlay...");
-            // Trigger escape key and close button click
             const closeBtn = openDialog.querySelector('button[aria-label="Close"], button.close-btn, [data-dialog-close]') as HTMLElement;
             if (closeBtn) {
               closeBtn.click();
@@ -61,7 +47,6 @@ export default function CapacitorBackButtonHandler() {
             return;
           }
 
-          // Check if mobile sidebar sheet is open
           const mobileSidebar = document.querySelector('[data-sidebar="mobile"][data-state="open"], [data-mobile-drawer="open"]') as HTMLElement;
           if (mobileSidebar) {
             console.log("[BACK BUTTON] Closing open mobile sidebar drawer...");
@@ -77,19 +62,21 @@ export default function CapacitorBackButtonHandler() {
           const cleanPath = (pathname || "").replace(/\/+$/, "");
 
           // 2. TIER 2: If on any sub-page or sub-tab (e.g. /dashboard/students, /dashboard/rooms, /dashboard/fees, etc.)
-          // Returns to the current hostel's home dashboard (keeping visiting hostel active for Chief Warden)
+          // Same back navigation logic for Chief Warden and everyone else: step back in browser history!
           if (cleanPath && cleanPath !== "/dashboard" && cleanPath.startsWith("/dashboard")) {
-            console.log("[BACK BUTTON] Navigating back from sub-tab to /dashboard (keeping visiting hostel active)...");
-            router.push('/dashboard');
+            console.log("[BACK BUTTON] Navigating back to previous page in history (keeping visiting hostel active)...");
+            router.back();
             return;
           }
 
-          // 3. TIER 3: If Chief Warden is at the HOME of a visiting hostel (/dashboard), return to All Hostels Central Dashboard
-          if (cleanPath === "/dashboard" && isChiefWarden && activeHostelStored) {
-            console.log("[BACK BUTTON] Chief Warden at visiting hostel home -> returning to All Hostels Central Dashboard...");
-            localStorage.removeItem('hostelin_active_hostel_id');
-            window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
-            router.push('/dashboard');
+          // 3. TIER 3: If at HOME of a visiting hostel (/dashboard with activeHostelId), Chief Warden exits visiting hostel and returns to his own home!
+          if (cleanPath === "/dashboard" && isChiefWarden && (activeHostelId || activeHostelStored)) {
+            console.log("[BACK BUTTON] Chief Warden at visiting hostel home -> returning to Central Dashboard (his own home)...");
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('hostelin_active_hostel_id');
+              window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
+            }
+            setActiveHostelId(null);
             return;
           }
 
@@ -130,7 +117,7 @@ export default function CapacitorBackButtonHandler() {
         activeListener.remove();
       }
     };
-  }, [pathname, user, router]);
+  }, [pathname, user, activeHostelId, setActiveHostelId, router]);
 
   return null;
 }

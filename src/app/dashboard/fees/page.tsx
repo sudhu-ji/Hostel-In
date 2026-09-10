@@ -95,7 +95,7 @@ export default function FeeManagementPage() {
                     </TableCell>
                     <TableCell className="font-medium">{s.room || 'N/A'}</TableCell>
                     <TableCell>
-                      <Badge variant={s.feeStatus === 'Paid' ? 'default' : s.feeStatus === 'Partial' ? 'secondary' : 'destructive'} className={s.feeStatus === 'Paid' ? 'bg-blue-600' : ''}>
+                      <Badge variant={s.feeStatus === 'Paid' ? 'default' : s.feeStatus === 'Partial' ? 'secondary' : 'destructive'} className={s.feeStatus === 'Paid' ? 'bg-primary text-primary-foreground' : ''}>
                         {s.feeStatus || 'Unpaid'}
                       </Badge>
                     </TableCell>
@@ -121,7 +121,7 @@ export default function FeeManagementPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="h-8 gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            className="h-8 gap-2 text-primary border-primary/20 hover:bg-primary/5"
                             onClick={() => openWhatsApp(s)}
                           >
                             <MessageCircle size={14} /> WhatsApp

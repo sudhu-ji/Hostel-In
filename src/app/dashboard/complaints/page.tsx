@@ -272,7 +272,7 @@ export default function ComplaintsPage() {
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        {c.status === 'Solved' ? <CheckCircle2 className="h-4 w-4 text-blue-600" /> : <Clock className="h-4 w-4 text-amber-500" />}
+                        {c.status === 'Solved' ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Clock className="h-4 w-4 text-amber-500" />}
                         <h3 className="font-bold text-lg text-left">{c.issue}</h3>
                       </div>
                       {(() => {
@@ -316,7 +316,7 @@ export default function ComplaintsPage() {
                   </div>
                   
                   <div className="mt-6 flex justify-between items-center">
-                    <Badge variant={c.status === 'Solved' ? 'default' : 'outline'} className={c.status === 'Solved' ? 'bg-blue-600 text-white' : ''}>{c.status}</Badge>
+                    <Badge variant={c.status === 'Solved' ? 'default' : 'outline'} className={c.status === 'Solved' ? 'bg-primary text-primary-foreground' : ''}>{c.status}</Badge>
                     {['WARDEN', 'MONITOR'].includes(user?.role || '') && c.status !== 'Solved' && (
                       <Button size="sm" onClick={() => markSolved(c.id)} className="gap-2"><CheckCircle2 className="h-4 w-4" /> Mark as Solved</Button>
                     )}

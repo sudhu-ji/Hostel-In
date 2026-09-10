@@ -187,7 +187,7 @@ export function AttendanceOverview() {
                         variant={isPresent ? "default" : "destructive"} 
                         className={cn(
                           "uppercase text-[9px] font-black tracking-widest px-2.5 py-0.5",
-                          isPresent ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
+                          isPresent ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
                         )}
                       >
                         {isPresent ? "Present" : "Absent"}
@@ -242,8 +242,8 @@ function SessionSummary({ label, dateDisplay, status, isHighlighted, onClick }: 
       </div>
       {isHighlighted && (
         <div className="mt-2 flex items-center gap-1.5">
-          <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Window Active</span>
+          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Window Active</span>
         </div>
       )}
     </div>
@@ -424,13 +424,13 @@ function AttendanceArchive({ students }: { students: any[] }) {
                             <React.Fragment key={`${day}-${student.id}-sess`}>
                               <TableCell className={cn(
                                 "text-center border-r border-muted/20 font-black text-[10px]",
-                                morningPresent ? "text-blue-600 bg-blue-50/20" : "text-destructive opacity-30"
+                                morningPresent ? "text-primary bg-primary/10" : "text-destructive opacity-30"
                               )}>
                                 {morningPresent ? 'P' : 'A'}
                               </TableCell>
                               <TableCell className={cn(
                                 "text-center border-r-2 border-muted-foreground/30 font-black text-[10px]",
-                                eveningPresent ? "text-blue-600 bg-blue-50/20" : "text-destructive opacity-30"
+                                eveningPresent ? "text-primary bg-primary/10" : "text-destructive opacity-30"
                               )}>
                                 {eveningPresent ? 'P' : 'A'}
                               </TableCell>
@@ -517,7 +517,7 @@ function AttendanceArchive({ students }: { students: any[] }) {
                         
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
                               <TrendingUp size={14} />
                             </div>
                             <div>

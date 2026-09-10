@@ -335,7 +335,7 @@ export function AttendanceMarker() {
 
   return (
     <div className="space-y-4">
-      <Card className={`border-none shadow-2xl overflow-hidden transition-all bg-card ${marked ? 'ring-2 ring-blue-500/20' : ''}`}>
+      <Card className={`border-none shadow-2xl overflow-hidden transition-all bg-card ${marked ? 'ring-2 ring-primary/20' : ''}`}>
         <CardHeader className="pb-4 border-b bg-primary/5">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
@@ -347,7 +347,7 @@ export function AttendanceMarker() {
               </CardDescription>
             </div>
             {marked ? (
-              <Badge variant="default" className="bg-blue-600 shadow-sm gap-1 px-3">
+              <Badge variant="default" className="bg-primary shadow-sm gap-1 px-3">
                 <CheckCircle2 size={12} /> Present
               </Badge>
             ) : requestPending ? (
@@ -387,7 +387,7 @@ export function AttendanceMarker() {
                     <RefreshCw size={10} className={isNearHostel === 'checking' ? 'animate-spin' : ''} /> Refresh GPS
                   </Button>
                   {isMonitor && isGpsFailed && (
-                    <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase gap-1 text-blue-600 hover:text-blue-700" onClick={handleCalibrateLocation}>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase gap-1 text-primary hover:text-primary/90" onClick={handleCalibrateLocation}>
                       <Crosshair size={10} /> Calibrate to Here
                     </Button>
                   )}
@@ -451,7 +451,7 @@ export function AttendanceMarker() {
             )}
 
             {marked && (
-              <div className="p-4 bg-blue-600 text-white rounded-xl shadow-lg flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300">
+              <div className="p-4 bg-primary text-primary-foreground rounded-xl shadow-lg flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-300">
                 <CheckCircle2 className="h-6 w-6" />
                 <span className="font-bold text-sm">Verified for {session} session.</span>
               </div>
