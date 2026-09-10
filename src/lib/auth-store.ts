@@ -749,6 +749,12 @@ export function useAuth() {
 
     // Instant optimistic update
     setHostels(prev => prev.map(h => h.id === hostel.id ? hostel : h));
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`hostel_theme_${hostel.id}`, hostel.themeColor);
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: hostel.id, themeColor: hostel.themeColor } }));
+      } catch (e) {}
+    }
 
     let wardenUser: Partial<User> | null = null;
     if (hostel.wardenMobile && hostel.wardenName) {
@@ -770,16 +776,10 @@ export function useAuth() {
 
     if (db) {
       try {
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
-        await Promise.race([
-          (async () => {
-            await setDoc(doc(db, 'hostels', hostel.id), hostel, { merge: true });
-            if (wardenUser && wardenUser.id) {
-              await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
-            }
-          })(),
-          timeoutPromise
-        ]);
+        await setDoc(doc(db, 'hostels', hostel.id), hostel, { merge: true });
+        if (wardenUser && wardenUser.id) {
+          await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
+        }
       } catch (err) {
         console.warn("Firestore hostel update deferred (saved locally):", err);
       }

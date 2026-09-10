@@ -105,8 +105,8 @@ export function AttendanceOverview() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-lg border-none bg-card overflow-hidden">
-        <CardHeader className="bg-primary/5 pb-4">
+      <Card className="shadow-lg border border-primary/25 bg-card overflow-hidden card-themed-glow border-t-4 border-t-primary">
+        <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/8 to-transparent pb-4 border-b border-primary/20">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <History size={20} className="text-primary" />

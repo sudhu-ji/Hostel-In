@@ -73,7 +73,46 @@ export function DashboardLayout({ children }: Props) {
 
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
   const currentHostel = activeHostel || hostels[0] || null;
-  const themeClass = currentHostel?.themeColor ? `theme-${currentHostel.themeColor}` : 'theme-blue';
+  const [overrideTheme, setOverrideTheme] = useState<string | null>(null);
+
+  // Read direct local theme override if present
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentHostel?.id) {
+      const directTheme = localStorage.getItem(`hostel_theme_${currentHostel.id}`);
+      if (directTheme) setOverrideTheme(directTheme);
+    }
+    const handleThemeChange = (e: any) => {
+      const newColor = e?.detail?.themeColor || e?.detail;
+      if (newColor && typeof newColor === 'string') {
+        setOverrideTheme(newColor);
+        if (typeof document !== 'undefined') {
+          const root = document.documentElement;
+          Array.from(root.classList).filter(c => c.startsWith('theme-')).forEach(c => root.classList.remove(c));
+          root.classList.add(`theme-${newColor}`);
+        }
+      }
+    };
+    window.addEventListener('hostelin_theme_changed', handleThemeChange);
+    return () => window.removeEventListener('hostelin_theme_changed', handleThemeChange);
+  }, [currentHostel?.id]);
+
+  // Prioritize active hostel theme from store or reactive override
+  const rawTheme = overrideTheme || currentHostel?.themeColor || 'emerald';
+  // Strictly prevent red or pink theme from ever displaying
+  const safeTheme = (rawTheme === 'rose' || rawTheme === 'pink') ? 'purple' : rawTheme;
+  const themeClass = `theme-${safeTheme}`;
+
+  // Reset override whenever active hostel switches
+  useEffect(() => {
+    if (currentHostel?.id && typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`hostel_theme_${currentHostel.id}`);
+      if (stored && stored !== 'rose' && stored !== 'pink') {
+        setOverrideTheme(stored);
+      } else if (currentHostel.themeColor) {
+        setOverrideTheme(currentHostel.themeColor);
+      }
+    }
+  }, [currentHostel?.id, currentHostel?.themeColor]);
 
   // Apply dynamic hostel theme class to documentElement so all portals, dialogs, and components adopt it
   useEffect(() => {
@@ -992,7 +1031,7 @@ export function DashboardLayout({ children }: Props) {
     <SidebarProvider>
       <div className={cn("flex min-h-screen bg-background w-full", themeClass)}>
         {!isChiefWardenHome && (
-        <Sidebar className="border-r border-primary/20 shadow-2xl bg-gradient-to-b from-primary/[0.08] via-card/95 to-primary/[0.04] backdrop-blur-md">
+        <Sidebar className="border-r border-primary/20 shadow-2xl bg-gradient-to-b from-primary/12 via-card to-primary/[0.06] backdrop-blur-md">
           <SidebarHeader className="p-5 border-b border-primary/15 bg-gradient-to-b from-primary/15 via-primary/8 to-transparent">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-2xl overflow-hidden shadow-md shrink-0 border-2 border-primary/30 bg-card p-0.5">
@@ -1017,27 +1056,27 @@ export function DashboardLayout({ children }: Props) {
                       className={cn(
                         "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
                         isActive 
-                          ? "bg-primary/15 text-primary font-black shadow-xs border border-primary/25" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold"
+                          ? "!bg-primary !text-primary-foreground font-black shadow-lg shadow-primary/30 border-2 border-primary" 
+                          : "text-muted-foreground hover:text-primary hover:bg-primary/10 font-semibold"
                       )}
                       onClick={() => handleNavigation(item.href)}
                     >
                       {navLoading === item.href ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                        <Loader2 className="h-4 w-4 animate-spin text-white shrink-0" />
                       ) : (
                         <item.icon className={cn(
                           "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
-                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                          isActive ? "!text-white" : "text-muted-foreground group-hover:text-primary"
                         )} />
                       )}
                       <span className={cn(
                         "font-bold text-sm tracking-wide font-headline text-left truncate",
-                        isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-foreground"
+                        isActive ? "!text-white font-black" : "text-foreground/80 group-hover:text-primary"
                       )}>
                         {item.label}
                       </span>
                       {isActive && (
-                        <span className="ml-auto h-2 w-2 rounded-full bg-primary shrink-0 shadow-xs" />
+                        <span className="ml-auto h-2 w-2 rounded-full bg-white shrink-0 shadow-sm" />
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -1107,7 +1146,7 @@ export function DashboardLayout({ children }: Props) {
           <div className="pointer-events-none absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-primary/12 via-primary/[0.03] to-transparent" />
           {/* Top Navigation Header */}
           {!isChiefWardenHome && (
-          <header className="h-16 border-b border-primary/20 bg-gradient-to-r from-primary/10 via-card/95 to-card/95 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs relative">
+          <header className="h-16 border-b border-primary/20 bg-gradient-to-r from-primary/15 via-card to-card backdrop-blur-md border-b-2 border-primary/30 shadow-xs flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs relative">
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/70" />
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-primary hover:scale-110 transition-transform" />

@@ -127,16 +127,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     iconText: 'text-white',
     hoverBorder: 'hover:border-purple-400'
   },
-  rose: {
-    borderTop: 'border-t-4 border-t-rose-600',
-    badgeBg: 'bg-rose-100/70',
-    badgeText: 'text-rose-800',
-    badgeBorder: 'border-rose-200',
-    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
-    iconBg: 'bg-rose-600 text-white',
-    iconText: 'text-white',
-    hoverBorder: 'hover:border-rose-400'
-  },
+
   amber: {
     borderTop: 'border-t-4 border-t-amber-600',
     badgeBg: 'bg-amber-100/70',
@@ -187,16 +178,7 @@ const HOSTEL_THEME_MAP: Record<string, {
     iconText: 'text-white',
     hoverBorder: 'hover:border-teal-400'
   },
-  pink: {
-    borderTop: 'border-t-4 border-t-pink-600',
-    badgeBg: 'bg-pink-100/70',
-    badgeText: 'text-pink-800',
-    badgeBorder: 'border-pink-200',
-    cardBg: 'bg-card border-border/80 hover:bg-muted/15',
-    iconBg: 'bg-pink-600 text-white',
-    iconText: 'text-white',
-    hoverBorder: 'hover:border-pink-400'
-  },
+
   violet: {
     borderTop: 'border-t-4 border-t-violet-600',
     badgeBg: 'bg-violet-100/70',
@@ -220,17 +202,15 @@ const HOSTEL_THEME_MAP: Record<string, {
 };
 
 const THEME_COLORS: { label: string; value: Hostel['themeColor']; bg: string; hex: string; gradient: string }[] = [
-  { label: 'Sapphire Blue', value: 'blue', bg: 'bg-blue-600', hex: '#2563eb', gradient: 'from-blue-600 to-indigo-700' },
   { label: 'Emerald Green', value: 'emerald', bg: 'bg-emerald-600', hex: '#059669', gradient: 'from-emerald-600 to-teal-700' },
   { label: 'Royal Purple', value: 'purple', bg: 'bg-purple-600', hex: '#7c3aed', gradient: 'from-purple-600 to-indigo-800' },
-  { label: 'Ruby Rose', value: 'rose', bg: 'bg-rose-600', hex: '#e11d48', gradient: 'from-rose-600 to-pink-700' },
-  { label: 'Warm Amber', value: 'amber', bg: 'bg-amber-600', hex: '#d97706', gradient: 'from-amber-600 to-orange-700' },
   { label: 'Ocean Cyan', value: 'cyan', bg: 'bg-cyan-600', hex: '#0891b2', gradient: 'from-cyan-600 to-blue-700' },
   { label: 'Deep Indigo', value: 'indigo', bg: 'bg-indigo-600', hex: '#4f46e5', gradient: 'from-indigo-600 to-purple-700' },
   { label: 'Sunset Orange', value: 'orange', bg: 'bg-orange-600', hex: '#ea580c', gradient: 'from-orange-600 to-amber-700' },
   { label: 'Forest Teal', value: 'teal', bg: 'bg-teal-600', hex: '#0d9488', gradient: 'from-teal-600 to-emerald-700' },
-  { label: 'Coral Pink', value: 'pink', bg: 'bg-pink-600', hex: '#db2777', gradient: 'from-pink-600 to-rose-700' },
   { label: 'Mystic Violet', value: 'violet', bg: 'bg-violet-600', hex: '#8b5cf6', gradient: 'from-violet-600 to-purple-700' },
+  { label: 'Sapphire Blue', value: 'blue', bg: 'bg-blue-600', hex: '#2563eb', gradient: 'from-blue-600 to-indigo-700' },
+  { label: 'Warm Amber', value: 'amber', bg: 'bg-amber-600', hex: '#d97706', gradient: 'from-amber-600 to-orange-700' },
   { label: 'Graphite Slate', value: 'slate', bg: 'bg-slate-600', hex: '#475569', gradient: 'from-slate-600 to-gray-800' }
 ];
 
@@ -600,7 +580,7 @@ export default function DashboardPage() {
     try {
       const fullWardenName = `${wardenSalutation} ${wardenName.trim()}`;
       if (editingHostel) {
-        await updateHostel({
+        const updatedH = {
           ...editingHostel,
           name: hostelName.trim(),
           type: hostelType,
@@ -611,7 +591,12 @@ export default function DashboardPage() {
           description: hostelDescription.trim() || editingHostel.description,
           themeColor: themeColor,
           institutionName: user?.institutionName || editingHostel.institutionName
-        });
+        };
+        await updateHostel(updatedH);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`hostel_theme_${editingHostel.id}`, themeColor);
+          window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: editingHostel.id, themeColor } }));
+        }
         toast({ title: "Hostel Updated", description: `${hostelName} updated successfully.` });
       } else {
         await createHostel({

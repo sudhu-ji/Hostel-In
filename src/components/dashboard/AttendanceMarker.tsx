@@ -335,8 +335,8 @@ export function AttendanceMarker() {
 
   return (
     <div className="space-y-4">
-      <Card className={`border-none shadow-2xl overflow-hidden transition-all bg-card ${marked ? 'ring-2 ring-primary/20' : ''}`}>
-        <CardHeader className="pb-4 border-b bg-primary/5">
+      <Card className={`border border-primary/25 border-t-4 border-t-primary card-themed-glow shadow-2xl overflow-hidden transition-all bg-card ${marked ? 'ring-2 ring-primary/20' : ''}`}>
+        <CardHeader className="pb-4 border-b border-primary/20 bg-gradient-to-r from-primary/15 via-primary/8 to-transparent">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <CardTitle className="text-xl flex items-center gap-2">

@@ -105,8 +105,8 @@ export function AnnouncementPoster() {
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-lg border-primary/20">
-        <CardHeader className="bg-primary/5">
+      <Card className="shadow-lg border border-primary/25 card-themed-glow overflow-hidden border-t-4 border-t-primary">
+        <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/8 to-transparent pb-4 border-b border-primary/20">
           <div className="flex items-center gap-2">
             <Megaphone className="h-5 w-5 text-primary" />
             <CardTitle>Hostel Announcement</CardTitle>

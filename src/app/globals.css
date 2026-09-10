@@ -77,233 +77,219 @@
     --sidebar-border: 224 35% 14%;
   }
 
-  /* Multi-Hostel Dynamic Blends in Dark Mode */
+  /* Multi-Hostel Dynamic Blends in Dark Mode (Strictly non-red/pink; saturated, high contrast) */
   .dark.theme-emerald, .dark .theme-emerald {
     --primary: 158 75% 48%;
     --ring: 158 75% 48%;
     --sidebar-primary: 158 75% 48%;
     --theme-subtle: 158 45% 10%;
-    --theme-glow: rgba(16, 185, 129, 0.14);
-    --theme-glow-hover: rgba(16, 185, 129, 0.24);
-    --border: 158 35% 18%;
+    --theme-glow: rgba(16, 185, 129, 0.22);
+    --theme-glow-hover: rgba(16, 185, 129, 0.38);
+    --border: 158 35% 20%;
   }
-  .dark.theme-purple, .dark .theme-purple {
-    --primary: 262 83% 68%;
-    --ring: 262 83% 68%;
-    --sidebar-primary: 262 83% 68%;
-    --theme-subtle: 262 45% 12%;
-    --theme-glow: rgba(168, 85, 247, 0.14);
-    --theme-glow-hover: rgba(168, 85, 247, 0.24);
-    --border: 262 35% 20%;
-  }
-  .dark.theme-rose, .dark .theme-rose {
-    --primary: 346 85% 62%;
-    --ring: 346 85% 62%;
-    --sidebar-primary: 346 85% 62%;
-    --theme-subtle: 346 45% 12%;
-    --theme-glow: rgba(244, 63, 94, 0.14);
-    --theme-glow-hover: rgba(244, 63, 94, 0.24);
-    --border: 346 35% 20%;
-  }
-  .dark.theme-amber, .dark .theme-amber {
-    --primary: 38 92% 55%;
-    --ring: 38 92% 55%;
-    --sidebar-primary: 38 92% 55%;
-    --theme-subtle: 38 45% 10%;
-    --theme-glow: rgba(245, 158, 11, 0.14);
-    --theme-glow-hover: rgba(245, 158, 11, 0.24);
-    --border: 38 35% 18%;
+  .dark.theme-purple, .dark .theme-purple, .dark.theme-rose, .dark .theme-rose {
+    --primary: 265 83% 68%;
+    --ring: 265 83% 68%;
+    --sidebar-primary: 265 83% 68%;
+    --theme-subtle: 265 45% 12%;
+    --theme-glow: rgba(168, 85, 247, 0.22);
+    --theme-glow-hover: rgba(168, 85, 247, 0.38);
+    --border: 265 35% 22%;
   }
   .dark.theme-cyan, .dark .theme-cyan {
     --primary: 189 94% 50%;
     --ring: 189 94% 50%;
     --sidebar-primary: 189 94% 50%;
     --theme-subtle: 189 45% 10%;
-    --theme-glow: rgba(6, 182, 212, 0.14);
-    --theme-glow-hover: rgba(6, 182, 212, 0.24);
-    --border: 189 35% 18%;
+    --theme-glow: rgba(6, 182, 212, 0.22);
+    --theme-glow-hover: rgba(6, 182, 212, 0.38);
+    --border: 189 35% 20%;
+  }
+  .dark.theme-indigo, .dark .theme-indigo, .dark.theme-pink, .dark .theme-pink {
+    --primary: 239 84% 70%;
+    --ring: 239 84% 70%;
+    --sidebar-primary: 239 84% 70%;
+    --theme-subtle: 239 45% 12%;
+    --theme-glow: rgba(99, 102, 241, 0.22);
+    --theme-glow-hover: rgba(99, 102, 241, 0.38);
+    --border: 239 35% 22%;
   }
   .dark.theme-blue, .dark .theme-blue {
     --primary: 217 91% 60%;
     --ring: 217 91% 60%;
     --sidebar-primary: 217 91% 60%;
     --theme-subtle: 217 45% 12%;
-    --theme-glow: rgba(59, 130, 246, 0.14);
-    --theme-glow-hover: rgba(59, 130, 246, 0.24);
-    --border: 217 35% 20%;
-  }
-  .dark.theme-indigo, .dark .theme-indigo {
-    --primary: 239 84% 70%;
-    --ring: 239 84% 70%;
-    --sidebar-primary: 239 84% 70%;
-    --theme-subtle: 239 45% 12%;
-    --theme-glow: rgba(99, 102, 241, 0.14);
-    --theme-glow-hover: rgba(99, 102, 241, 0.24);
-    --border: 239 35% 20%;
-  }
-  .dark.theme-orange, .dark .theme-orange {
-    --primary: 24 95% 60%;
-    --ring: 24 95% 60%;
-    --sidebar-primary: 24 95% 60%;
-    --theme-subtle: 24 45% 10%;
-    --theme-glow: rgba(249, 115, 22, 0.14);
-    --theme-glow-hover: rgba(249, 115, 22, 0.24);
-    --border: 24 35% 18%;
+    --theme-glow: rgba(59, 130, 246, 0.22);
+    --theme-glow-hover: rgba(59, 130, 246, 0.38);
+    --border: 217 35% 22%;
   }
   .dark.theme-teal, .dark .theme-teal {
     --primary: 174 84% 42%;
     --ring: 174 84% 42%;
     --sidebar-primary: 174 84% 42%;
     --theme-subtle: 174 45% 10%;
-    --theme-glow: rgba(20, 184, 166, 0.14);
-    --theme-glow-hover: rgba(20, 184, 166, 0.24);
-    --border: 174 35% 18%;
+    --theme-glow: rgba(20, 184, 166, 0.22);
+    --theme-glow-hover: rgba(20, 184, 166, 0.38);
+    --border: 174 35% 20%;
   }
-  .dark.theme-pink, .dark .theme-pink {
-    --primary: 330 85% 65%;
-    --ring: 330 85% 65%;
-    --sidebar-primary: 330 85% 65%;
-    --theme-subtle: 330 45% 12%;
-    --theme-glow: rgba(236, 72, 153, 0.14);
-    --theme-glow-hover: rgba(236, 72, 153, 0.24);
-    --border: 330 35% 20%;
+  .dark.theme-amber, .dark .theme-amber {
+    --primary: 38 92% 55%;
+    --ring: 38 92% 55%;
+    --sidebar-primary: 38 92% 55%;
+    --theme-subtle: 38 45% 10%;
+    --theme-glow: rgba(245, 158, 11, 0.22);
+    --theme-glow-hover: rgba(245, 158, 11, 0.38);
+    --border: 38 35% 20%;
+  }
+  .dark.theme-orange, .dark .theme-orange {
+    --primary: 24 95% 60%;
+    --ring: 24 95% 60%;
+    --sidebar-primary: 24 95% 60%;
+    --theme-subtle: 24 45% 10%;
+    --theme-glow: rgba(249, 115, 22, 0.22);
+    --theme-glow-hover: rgba(249, 115, 22, 0.38);
+    --border: 24 35% 20%;
   }
   .dark.theme-violet, .dark .theme-violet {
-    --primary: 263 80% 65%;
-    --ring: 263 80% 65%;
-    --sidebar-primary: 263 80% 65%;
-    --theme-subtle: 263 45% 12%;
-    --theme-glow: rgba(139, 92, 246, 0.14);
-    --theme-glow-hover: rgba(139, 92, 246, 0.24);
-    --border: 263 35% 20%;
+    --primary: 275 80% 66%;
+    --ring: 275 80% 66%;
+    --sidebar-primary: 275 80% 66%;
+    --theme-subtle: 275 45% 12%;
+    --theme-glow: rgba(168, 85, 247, 0.22);
+    --theme-glow-hover: rgba(168, 85, 247, 0.38);
+    --border: 275 35% 22%;
   }
   .dark.theme-slate, .dark .theme-slate {
     --primary: 215 25% 65%;
     --ring: 215 25% 65%;
     --sidebar-primary: 215 25% 65%;
     --theme-subtle: 215 30% 12%;
-    --theme-glow: rgba(148, 163, 184, 0.14);
-    --theme-glow-hover: rgba(148, 163, 184, 0.24);
-    --border: 215 25% 20%;
+    --theme-glow: rgba(148, 163, 184, 0.22);
+    --theme-glow-hover: rgba(148, 163, 184, 0.38);
+    --border: 215 25% 22%;
   }
 
-  /* Multi-Hostel Dynamic Blends in LIGHT Mode (Vivid theme presence, harmonious border & glow) */
+  /* Multi-Hostel Dynamic Blends in LIGHT Mode (Vivid theme presence, rich saturated borders, visible contour glow) */
   .theme-emerald {
-    --primary: 158 80% 36%;
-    --ring: 158 80% 36%;
-    --sidebar-primary: 158 80% 36%;
-    --theme-subtle: 158 75% 95%;
-    --theme-glow: rgba(5, 150, 105, 0.10);
-    --theme-glow-hover: rgba(5, 150, 105, 0.20);
-    --border: 158 28% 84%;
+    --primary: 158 84% 34%;
+    --ring: 158 84% 34%;
+    --sidebar-primary: 158 84% 34%;
+    --sidebar-accent: 158 60% 90%;
+    --sidebar-accent-foreground: 158 84% 20%;
+    --theme-subtle: 158 75% 94%;
+    --theme-glow: rgba(5, 150, 105, 0.20);
+    --theme-glow-hover: rgba(5, 150, 105, 0.35);
+    --border: 158 55% 72%;
   }
-  .theme-purple {
-    --primary: 262 83% 54%;
-    --ring: 262 83% 54%;
-    --sidebar-primary: 262 83% 54%;
-    --theme-subtle: 262 83% 96%;
-    --theme-glow: rgba(124, 58, 237, 0.10);
-    --theme-glow-hover: rgba(124, 58, 237, 0.20);
-    --border: 262 30% 86%;
-  }
-  .theme-rose {
-    --primary: 346 80% 48%;
-    --ring: 346 80% 48%;
-    --sidebar-primary: 346 80% 48%;
-    --theme-subtle: 346 77% 96%;
-    --theme-glow: rgba(225, 29, 72, 0.10);
-    --theme-glow-hover: rgba(225, 29, 72, 0.20);
-    --border: 346 30% 86%;
-  }
-  .theme-amber {
-    --primary: 38 92% 44%;
-    --ring: 38 92% 44%;
-    --sidebar-primary: 38 92% 44%;
-    --theme-subtle: 38 92% 95%;
-    --theme-glow: rgba(217, 119, 6, 0.10);
-    --theme-glow-hover: rgba(217, 119, 6, 0.20);
-    --border: 38 35% 83%;
+  .theme-purple, .theme-rose {
+    --primary: 265 85% 48%;
+    --ring: 265 85% 48%;
+    --sidebar-primary: 265 85% 48%;
+    --sidebar-accent: 265 65% 92%;
+    --sidebar-accent-foreground: 265 85% 22%;
+    --theme-subtle: 265 80% 95%;
+    --theme-glow: rgba(124, 58, 237, 0.20);
+    --theme-glow-hover: rgba(124, 58, 237, 0.35);
+    --border: 265 55% 78%;
   }
   .theme-cyan {
-    --primary: 189 94% 40%;
-    --ring: 189 94% 40%;
-    --sidebar-primary: 189 94% 40%;
-    --theme-subtle: 189 94% 95%;
-    --theme-glow: rgba(8, 145, 178, 0.10);
-    --theme-glow-hover: rgba(8, 145, 178, 0.20);
-    --border: 189 30% 84%;
+    --primary: 189 95% 34%;
+    --ring: 189 95% 34%;
+    --sidebar-primary: 189 95% 34%;
+    --sidebar-accent: 189 65% 90%;
+    --sidebar-accent-foreground: 189 95% 18%;
+    --theme-subtle: 189 80% 94%;
+    --theme-glow: rgba(8, 145, 178, 0.20);
+    --theme-glow-hover: rgba(8, 145, 178, 0.35);
+    --border: 189 55% 72%;
+  }
+  .theme-indigo, .theme-pink {
+    --primary: 239 84% 52%;
+    --ring: 239 84% 52%;
+    --sidebar-primary: 239 84% 52%;
+    --sidebar-accent: 239 65% 92%;
+    --sidebar-accent-foreground: 239 84% 22%;
+    --theme-subtle: 239 80% 95%;
+    --theme-glow: rgba(79, 70, 229, 0.20);
+    --theme-glow-hover: rgba(79, 70, 229, 0.35);
+    --border: 239 55% 78%;
   }
   .theme-blue {
-    --primary: 221.2 83.2% 53.3%;
-    --ring: 221.2 83.2% 53.3%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
-    --theme-subtle: 221 83% 96%;
-    --theme-glow: rgba(37, 99, 235, 0.10);
-    --theme-glow-hover: rgba(37, 99, 235, 0.20);
-    --border: 221 30% 86%;
-  }
-  .theme-indigo {
-    --primary: 239 84% 60%;
-    --ring: 239 84% 60%;
-    --sidebar-primary: 239 84% 60%;
-    --theme-subtle: 239 84% 96%;
-    --theme-glow: rgba(79, 70, 229, 0.10);
-    --theme-glow-hover: rgba(79, 70, 229, 0.20);
-    --border: 239 30% 86%;
-  }
-  .theme-orange {
-    --primary: 24 95% 48%;
-    --ring: 24 95% 48%;
-    --sidebar-primary: 24 95% 48%;
-    --theme-subtle: 24 95% 95%;
-    --theme-glow: rgba(234, 88, 12, 0.10);
-    --theme-glow-hover: rgba(234, 88, 12, 0.20);
-    --border: 24 35% 83%;
+    --primary: 221 88% 48%;
+    --ring: 221 88% 48%;
+    --sidebar-primary: 221 88% 48%;
+    --sidebar-accent: 221 65% 91%;
+    --sidebar-accent-foreground: 221 88% 20%;
+    --theme-subtle: 221 80% 95%;
+    --theme-glow: rgba(37, 99, 235, 0.20);
+    --theme-glow-hover: rgba(37, 99, 235, 0.35);
+    --border: 221 55% 76%;
   }
   .theme-teal {
-    --primary: 174 84% 32%;
-    --ring: 174 84% 32%;
-    --sidebar-primary: 174 84% 32%;
-    --theme-subtle: 174 84% 95%;
-    --theme-glow: rgba(13, 148, 136, 0.10);
-    --theme-glow-hover: rgba(13, 148, 136, 0.20);
-    --border: 174 30% 84%;
+    --primary: 174 88% 28%;
+    --ring: 174 88% 28%;
+    --sidebar-primary: 174 88% 28%;
+    --sidebar-accent: 174 65% 90%;
+    --sidebar-accent-foreground: 174 88% 16%;
+    --theme-subtle: 174 80% 94%;
+    --theme-glow: rgba(13, 148, 136, 0.20);
+    --theme-glow-hover: rgba(13, 148, 136, 0.35);
+    --border: 174 55% 70%;
   }
-  .theme-pink {
-    --primary: 330 81% 54%;
-    --ring: 330 81% 54%;
-    --sidebar-primary: 330 81% 54%;
-    --theme-subtle: 330 81% 96%;
-    --theme-glow: rgba(219, 39, 119, 0.10);
-    --theme-glow-hover: rgba(219, 39, 119, 0.20);
-    --border: 330 30% 86%;
+  .theme-amber {
+    --primary: 38 95% 38%;
+    --ring: 38 95% 38%;
+    --sidebar-primary: 38 95% 38%;
+    --sidebar-accent: 38 70% 90%;
+    --sidebar-accent-foreground: 38 95% 18%;
+    --theme-subtle: 38 90% 94%;
+    --theme-glow: rgba(217, 119, 6, 0.20);
+    --theme-glow-hover: rgba(217, 119, 6, 0.35);
+    --border: 38 60% 70%;
+  }
+  .theme-orange {
+    --primary: 24 95% 44%;
+    --ring: 24 95% 44%;
+    --sidebar-primary: 24 95% 44%;
+    --sidebar-accent: 24 70% 91%;
+    --sidebar-accent-foreground: 24 95% 18%;
+    --theme-subtle: 24 90% 94%;
+    --theme-glow: rgba(234, 88, 12, 0.20);
+    --theme-glow-hover: rgba(234, 88, 12, 0.35);
+    --border: 24 60% 72%;
   }
   .theme-violet {
-    --primary: 263 70% 48%;
-    --ring: 263 70% 48%;
-    --sidebar-primary: 263 70% 48%;
-    --theme-subtle: 263 70% 96%;
-    --theme-glow: rgba(139, 92, 246, 0.10);
-    --theme-glow-hover: rgba(139, 92, 246, 0.20);
-    --border: 263 30% 86%;
+    --primary: 275 80% 46%;
+    --ring: 275 80% 46%;
+    --sidebar-primary: 275 80% 46%;
+    --sidebar-accent: 275 65% 92%;
+    --sidebar-accent-foreground: 275 80% 20%;
+    --theme-subtle: 275 75% 95%;
+    --theme-glow: rgba(147, 51, 234, 0.20);
+    --theme-glow-hover: rgba(147, 51, 234, 0.35);
+    --border: 275 55% 78%;
   }
   .theme-slate {
-    --primary: 215 25% 42%;
-    --ring: 215 25% 42%;
-    --sidebar-primary: 215 25% 42%;
-    --theme-subtle: 215 16% 95%;
-    --theme-glow: rgba(71, 85, 105, 0.10);
-    --theme-glow-hover: rgba(71, 85, 105, 0.20);
-    --border: 215 20% 84%;
+    --primary: 215 30% 36%;
+    --ring: 215 30% 36%;
+    --sidebar-primary: 215 30% 36%;
+    --sidebar-accent: 215 35% 90%;
+    --sidebar-accent-foreground: 215 30% 16%;
+    --theme-subtle: 215 20% 94%;
+    --theme-glow: rgba(71, 85, 105, 0.20);
+    --theme-glow-hover: rgba(71, 85, 105, 0.35);
+    --border: 215 30% 72%;
   }
-  /* Themed Card Contour Glow (Light, subtle, elegant) */
+
+  /* Themed Card Contour Glow (Visible halo in both light and dark modes) */
   .card-themed-glow {
-    box-shadow: 0 4px 20px -2px var(--theme-glow, rgba(37, 99, 235, 0.10)), 0 0 10px 0 var(--theme-glow, rgba(37, 99, 235, 0.06));
+    box-shadow: 0 4px 20px -2px var(--theme-glow, rgba(37, 99, 235, 0.16)), 0 0 12px 0 var(--theme-glow, rgba(37, 99, 235, 0.10));
     border-color: hsl(var(--border));
+    border-width: 1.5px;
     transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, transform 0.2s ease;
   }
   .card-themed-glow:hover {
-    box-shadow: 0 8px 28px -4px var(--theme-glow-hover, rgba(37, 99, 235, 0.18)), 0 0 14px 0 var(--theme-glow-hover, rgba(37, 99, 235, 0.10));
+    box-shadow: 0 8px 30px -4px var(--theme-glow-hover, rgba(37, 99, 235, 0.30)), 0 0 18px 0 var(--theme-glow-hover, rgba(37, 99, 235, 0.20));
   }
 }
 

@@ -9,10 +9,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit3, Info, MapPin, Shield, Camera, Upload, Phone, MessageCircle, ChevronLeft, ChevronRight, Trash2, Users, UserCheck } from 'lucide-react';
+import { Edit3, Info, MapPin, Shield, Camera, Upload, Phone, MessageCircle, ChevronLeft, ChevronRight, Trash2, Users, UserCheck, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from "@/components/ui/verified-badge";
+import { cn } from "@/lib/utils";
+
+
+const THEME_COLORS: { label: string; value: string; bg: string }[] = [
+  { label: 'Emerald Green', value: 'emerald', bg: 'bg-emerald-600' },
+  { label: 'Royal Purple', value: 'purple', bg: 'bg-purple-600' },
+  { label: 'Ocean Cyan', value: 'cyan', bg: 'bg-cyan-600' },
+  { label: 'Deep Indigo', value: 'indigo', bg: 'bg-indigo-600' },
+  { label: 'Sunset Orange', value: 'orange', bg: 'bg-orange-600' },
+  { label: 'Forest Teal', value: 'teal', bg: 'bg-teal-600' },
+  { label: 'Mystic Violet', value: 'violet', bg: 'bg-violet-600' },
+  { label: 'Sapphire Blue', value: 'blue', bg: 'bg-blue-600' },
+  { label: 'Warm Amber', value: 'amber', bg: 'bg-amber-600' },
+  { label: 'Graphite Slate', value: 'slate', bg: 'bg-slate-600' }
+];
 
 export default function HostelDetailsPage() {
   const { user, allottedUsers, activeHostel, updateHostel, updateAllottedUser } = useAuth();
@@ -90,6 +105,7 @@ export default function HostelDetailsPage() {
 
   const [wardenGender, setWardenGender] = useState<'Male' | 'Female'>(activeHostel?.wardenGender || wardenUser?.gender || 'Male');
   const [wardenAbout, setWardenAbout] = useState(activeHostel?.wardenAbout || wardenUser?.description || '');
+  const [themeColor, setThemeColor] = useState<string>(activeHostel?.themeColor || 'emerald');
 
   useEffect(() => {
     if (activeHostel) {
@@ -97,6 +113,7 @@ export default function HostelDetailsPage() {
       if (activeHostel.description) setInfo(activeHostel.description);
       if (activeHostel.wardenGender) setWardenGender(activeHostel.wardenGender);
       if (activeHostel.wardenAbout) setWardenAbout(activeHostel.wardenAbout);
+      if (activeHostel.themeColor) setThemeColor(activeHostel.themeColor);
     }
   }, [activeHostel]);
 
@@ -150,8 +167,13 @@ export default function HostelDetailsPage() {
         name: hostelName,
         description: info,
         wardenGender: wardenGender,
-        wardenAbout: wardenAbout
+        wardenAbout: wardenAbout,
+        themeColor: themeColor as any
       });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`hostel_theme_${activeHostel.id}`, themeColor);
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: activeHostel.id, themeColor } }));
+      }
     }
 
     if (wardenUser) {
@@ -365,6 +387,32 @@ export default function HostelDetailsPage() {
                       onChange={(e) => setWardenAbout(e.target.value)} 
                       placeholder="e.g. Associate Professor & Resident Warden"
                     />
+                  </div>
+                </div>
+
+                {/* Hostel Color Theme Selector */}
+                <div className="space-y-2 pt-3 border-t text-left">
+                  <label className="text-xs font-bold uppercase text-muted-foreground block">Hostel Color Theme</label>
+                  <p className="text-[11px] text-muted-foreground">Select a theme color for this hostel. The theme is applied across all residents and staff in both light and dark modes.</p>
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 pt-1">
+                    {THEME_COLORS.map((tc) => {
+                      const isColorSelected = themeColor === tc.value;
+                      return (
+                        <button
+                          key={tc.value}
+                          type="button"
+                          onClick={() => setThemeColor(tc.value)}
+                          className={cn(
+                            "h-9 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                            tc.bg,
+                            isColorSelected ? "ring-4 ring-offset-2 ring-primary scale-110" : "opacity-80 hover:opacity-100 hover:scale-105"
+                          )}
+                          title={tc.label}
+                        >
+                          {isColorSelected && <Check size={16} className="text-white drop-shadow" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
