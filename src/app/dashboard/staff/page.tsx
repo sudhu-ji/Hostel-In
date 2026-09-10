@@ -237,7 +237,7 @@ export default function StaffPage() {
                               <span className={cn(
                                 "text-[8px] font-black uppercase px-1.5 py-0.2 rounded border shadow-sm tracking-widest",
                                 s.avatarVerificationStatus === 'verified' 
-                                  ? "border-blue-500/20 bg-blue-500/5 text-blue-600" 
+                                  ? "border-primary/20 bg-primary/5 text-primary" 
                                   : s.avatarVerificationStatus === 'pending'
                                   ? "border-yellow-500/20 bg-yellow-500/5 text-yellow-600 animate-pulse"
                                   : "border-red-500/20 bg-red-500/5 text-red-600"
@@ -343,7 +343,7 @@ export default function StaffPage() {
                       className={cn(
                         "text-[9px] font-black uppercase tracking-widest border",
                         selectedStaff?.avatarVerificationStatus === 'verified' 
-                          ? "border-blue-500/20 bg-blue-500/5 text-blue-600" 
+                          ? "border-primary/20 bg-primary/5 text-primary" 
                           : selectedStaff?.avatarVerificationStatus === 'pending'
                           ? "border-yellow-500/20 bg-yellow-500/5 text-yellow-600 animate-pulse"
                           : "border-red-500/20 bg-red-500/5 text-red-600"
@@ -418,23 +418,16 @@ export default function StaffPage() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <Trash2 className="text-destructive h-5 w-5" />
-                  Confirm Removal
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to permanently remove this staff member from {currentHostelName} records?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setStaffToManage(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRemoveConfirm} className="bg-destructive text-white hover:bg-destructive/90">Permanently Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDeleteDialog
+            open={isDeleteConfirmOpen}
+            onOpenChange={setIsDeleteConfirmOpen}
+            title="Delete Staff Member"
+            itemName={allottedUsers.find(u => u.id === staffToManage)?.name || 'Selected Staff Member'}
+            itemType="staff member"
+            onSoftDelete={handleSoftRemove}
+            onHardDelete={handleRemoveConfirm}
+            description="Choose how to delete this staff member. 'Remove from App' clears them from active views on this device. 'Delete Permanently' purges their record completely from cloud storage."
+          />
 
           {/* Profile Picture Verification Dialog */}
           <Dialog open={!!verifyingUser} onOpenChange={(open) => !open && setVerifyingUser(null)}>

@@ -399,7 +399,7 @@ export default function StudentsPage() {
                               <span className={cn(
                                 "text-[8px] font-black uppercase px-1.5 py-0.2 rounded border shadow-sm tracking-widest",
                                 s.avatarVerificationStatus === 'verified' 
-                                  ? "border-blue-500/20 bg-blue-500/5 text-blue-600" 
+                                  ? "border-primary/20 bg-primary/5 text-primary" 
                                   : s.avatarVerificationStatus === 'pending'
                                   ? "border-yellow-500/20 bg-yellow-500/5 text-yellow-600 animate-pulse"
                                   : "border-red-500/20 bg-red-500/5 text-red-600"
@@ -545,7 +545,7 @@ export default function StudentsPage() {
                       className={cn(
                         "text-[9px] font-black uppercase tracking-widest border",
                         selectedStudent?.avatarVerificationStatus === 'verified' 
-                          ? "border-blue-500/20 bg-blue-500/5 text-blue-600" 
+                          ? "border-primary/20 bg-primary/5 text-primary" 
                           : selectedStudent?.avatarVerificationStatus === 'pending'
                           ? "border-yellow-500/20 bg-yellow-500/5 text-yellow-600 animate-pulse"
                           : "border-red-500/20 bg-red-500/5 text-red-600"

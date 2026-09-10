@@ -384,7 +384,7 @@ export default function ProfilePage() {
                     <div className={cn(
                       "inline-flex items-center justify-center px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm",
                       displayUser?.avatarVerificationStatus === 'verified'
-                        ? "border-blue-500/20 bg-blue-500/5 text-blue-600" 
+                        ? "border-primary/20 bg-primary/5 text-primary" 
                         : displayUser?.avatarVerificationStatus === 'pending'
                         ? "border-yellow-500/20 bg-yellow-500/5 text-yellow-600 animate-pulse"
                         : "border-red-500/20 bg-red-500/5 text-red-600"

@@ -124,12 +124,21 @@ export function DashboardLayout({ children }: Props) {
 
     // 3. If on ANY sub-tab (e.g. /dashboard/students, /dashboard/rooms, etc.), navigate back in history just like other users!
     if (cleanPath && cleanPath !== '/dashboard' && cleanPath.startsWith('/dashboard')) {
-      router.back();
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back();
+      } else {
+        router.push('/dashboard');
+      }
       return;
     }
 
     // 4. If Chief Warden is at the HOME of a visiting hostel (/dashboard), return to his own Central Dashboard!
-    if (cleanPath === '/dashboard' && isChiefWarden && activeHostelId) {
+    if (cleanPath === '/dashboard' && isChiefWarden && (activeHostelId || (typeof window !== 'undefined' && localStorage.getItem('hostelin_active_hostel_id')))) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('hostelin_active_hostel_id');
+        window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
+        window.history.replaceState({}, '', '/dashboard');
+      }
       setActiveHostelId(null);
       return;
     }
@@ -776,12 +785,8 @@ export function DashboardLayout({ children }: Props) {
 
     if (pathname === href) return;
 
-    // If navigating between sub-tabs under dashboard, use replace so back navigation directly returns to Home (/dashboard)
-    if (pathname.startsWith('/dashboard/') && href.startsWith('/dashboard/')) {
-      router.replace(href);
-    } else {
-      router.push(href);
-    }
+    // Always push into history so back button steps backwards through visited screens
+    router.push(href);
   };
 
   const handleApproveAvatar = async () => {
@@ -946,7 +951,7 @@ export function DashboardLayout({ children }: Props) {
   const cleanPath = (pathname || '').replace(/\/+$/, '') || '/';
   const isVisitingHostel = isChiefWarden && !!activeHostelId;
   // Chief Warden Home UI has no sidebar ONLY when on central overview (no specific hostel active)
-  const isChiefWardenHome = isChiefWarden && !activeHostelId;
+  const isChiefWardenHome = isChiefWarden && !activeHostelId && cleanPath === '/dashboard';
   const navItems = isVisitingHostel 
     ? roleNavItems.WARDEN 
     : (roleNavItems[user.role as keyof typeof roleNavItems] || []);
@@ -955,10 +960,10 @@ export function DashboardLayout({ children }: Props) {
     <SidebarProvider>
       <div className={cn("flex min-h-screen bg-background w-full", themeClass)}>
         {!isChiefWardenHome && (
-        <Sidebar className="border-r border-sidebar-border shadow-xl">
-          <SidebarHeader className="p-5 border-b border-sidebar-border/40 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent">
+        <Sidebar className="border-r border-primary/20 shadow-2xl bg-gradient-to-b from-primary/[0.08] via-card/95 to-primary/[0.04] backdrop-blur-md">
+          <SidebarHeader className="p-5 border-b border-primary/15 bg-gradient-to-b from-primary/15 via-primary/8 to-transparent">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl overflow-hidden shadow-md shrink-0 border-2 border-primary/20 bg-card p-0.5">
+              <div className="h-11 w-11 rounded-2xl overflow-hidden shadow-md shrink-0 border-2 border-primary/30 bg-card p-0.5">
                 <img src="/icon.png" alt="Hostel In" className="h-full w-full object-cover rounded-xl" />
               </div>
               <div className="overflow-hidden text-left">
@@ -969,44 +974,47 @@ export function DashboardLayout({ children }: Props) {
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent className="px-4 py-4">
-            <SidebarMenu className="space-y-2">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton 
-                      isActive={isActive}
-                      className={cn(
-                        "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
-                        isActive 
-                          ? "bg-primary/15 text-primary font-black shadow-xs" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold"
-                      )}
-                      onClick={() => handleNavigation(item.href)}
-                    >
-                      {navLoading === item.href ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
-                      ) : (
-                        <item.icon className={cn(
-                          "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
-                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                        )} />
-                      )}
-                      <span className={cn(
-                        "font-bold text-xs uppercase tracking-wide font-headline text-left truncate",
-                        isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-foreground"
-                      )}>
-                        {item.label}
-                      </span>
-                      {isActive && (
-                        <span className="ml-auto h-2 w-2 rounded-full bg-primary shrink-0 shadow-xs" />
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+          <SidebarContent className="px-3.5 py-4">
+            {/* Elegant light gradient backdrop container behind tabs */}
+            <div className="p-2 rounded-3xl bg-gradient-to-b from-primary/[0.09] via-primary/[0.03] to-primary/[0.07] border border-primary/15 shadow-inner backdrop-blur-xs">
+              <SidebarMenu className="space-y-1.5">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton 
+                        isActive={isActive}
+                        className={cn(
+                          "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
+                          isActive 
+                            ? "bg-gradient-to-r from-primary/25 via-primary/20 to-primary/15 text-primary font-black shadow-sm border border-primary/30 ring-1 ring-primary/20" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-primary/10 font-semibold"
+                        )}
+                        onClick={() => handleNavigation(item.href)}
+                      >
+                        {navLoading === item.href ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                        ) : (
+                          <item.icon className={cn(
+                            "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
+                            isActive ? "text-primary scale-110" : "text-muted-foreground group-hover:text-primary"
+                          )} />
+                        )}
+                        <span className={cn(
+                          "font-bold text-xs uppercase tracking-wide font-headline text-left truncate",
+                          isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-primary"
+                        )}>
+                          {item.label}
+                        </span>
+                        {isActive && (
+                          <span className="ml-auto h-2.5 w-2.5 rounded-full bg-primary shrink-0 shadow-sm animate-pulse" />
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </div>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border/30">
             {(() => {
@@ -1067,7 +1075,7 @@ export function DashboardLayout({ children }: Props) {
         )}
 
         <SidebarInset className="flex-1 overflow-auto relative bg-background">
-          <div className="pointer-events-none absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-primary/[0.04] to-transparent" />
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-primary/12 via-primary/[0.03] to-transparent" />
           {/* Top Navigation Header */}
           {!isChiefWardenHome && (
           <header className="h-16 border-b border-primary/20 bg-gradient-to-r from-primary/10 via-card/95 to-card/95 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs relative">

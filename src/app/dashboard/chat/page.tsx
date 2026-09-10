@@ -319,7 +319,7 @@ export default function ChatPage() {
         <Card className="h-full flex flex-col shadow-2xl border-none overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-500 fill-mode-both">
           <CardHeader className="border-b bg-primary/5 backdrop-blur-md relative z-10">
             <div className="flex items-center gap-4">
-              <div className="bg-primary p-2.5 rounded-xl text-white shadow-lg shadow-blue-900/20">
+              <div className="bg-primary p-2.5 rounded-xl text-white shadow-lg shadow-primary/20">
                 <Users size={22} />
               </div>
               <div>

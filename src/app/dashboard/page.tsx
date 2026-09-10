@@ -291,14 +291,7 @@ export default function DashboardPage() {
   const [editNickName, setEditNickName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showWelcomeToast, setShowWelcomeToast] = useState(true);
-  useEffect(() => {
-    if (isChiefWarden && typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (!urlParams.get('hostel') && activeHostelId) {
-        setActiveHostelId(null);
-      }
-    }
-  }, [isChiefWarden]);
+// Active hostel state is preserved across history navigation and only reset on explicit back to central home
 
 
   useEffect(() => {
@@ -322,8 +315,36 @@ export default function DashboardPage() {
   const [themeColor, setThemeColor] = useState<Hostel['themeColor']>('blue');
   const [isSubmittingHostel, setIsSubmittingHostel] = useState(false);
 
+  // Soft remove hostel from this app only
+  const handleSoftRemoveHostel = async () => {
+    if (!hostelToDelete) return;
+    try {
+      const hiddenRaw = localStorage.getItem('hostelin_hidden_hostels') || '[]';
+      const hiddenArr = JSON.parse(hiddenRaw);
+      if (!hiddenArr.includes(hostelToDelete.id)) {
+        hiddenArr.push(hostelToDelete.id);
+        localStorage.setItem('hostelin_hidden_hostels', JSON.stringify(hiddenArr));
+      }
+      setHiddenHostelIds(prev => [...prev, hostelToDelete.id]);
+      toast({ title: "Hostel Removed from App", description: `${hostelToDelete.name} has been hidden from this app.` });
+      setIsDeleteHostelOpen(false);
+      setHostelToDelete(null);
+    } catch (e) {
+      console.error("Soft remove failed:", e);
+    }
+  };
+
   // Delete Hostel Confirmation State
   const [hostelToDelete, setHostelToDelete] = useState<Hostel | null>(null);
+  const [hiddenHostelIds, setHiddenHostelIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_hidden_hostels');
+        return raw ? JSON.parse(raw) : [];
+      } catch(e) {}
+    }
+    return [];
+  });
   const [isDeleteHostelOpen, setIsDeleteHostelOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -909,7 +930,7 @@ export default function DashboardPage() {
                   <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between py-4 sm:py-5 px-4 sm:px-6 gap-3">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-xl sm:text-2xl font-black font-headline tracking-tight text-primary flex items-center gap-2">
-                        <Building2 size={22} className="shrink-0" /> <span className="truncate">All Hostels ({hostels.length})</span>
+                        <Building2 size={22} className="shrink-0" /> <span className="truncate">All Hostels ({hostels.filter(h => !hiddenHostelIds.includes(h.id)).length})</span>
                       </CardTitle>
                       <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">
                         Visit all hostels in one click.
@@ -936,7 +957,7 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {hostels.map((h) => {
+                      {hostels.filter(h => !hiddenHostelIds.includes(h.id)).map((h) => {
                         const themeStyle = HOSTEL_THEME_MAP[h.themeColor] || HOSTEL_THEME_MAP.blue;
                         return (
                           <div 
@@ -1769,27 +1790,16 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* CONFIRM DELETE HOSTEL DIALOG */}
-      <AlertDialog open={isDeleteHostelOpen} onOpenChange={setIsDeleteHostelOpen}>
-        <AlertDialogContent className="rounded-3xl border-destructive/20 bg-card">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive flex items-center gap-2 font-headline text-xl">
-              <Trash2 className="h-5 w-5" /> Delete Hostel: {hostelToDelete?.name}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-relaxed">
-              Are you sure you want to delete <strong>{hostelToDelete?.name}</strong> ({hostelToDelete?.type} Hostel)? This action cannot be undone and all associated records will be removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmDeleteHostel} 
-              className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl"
-            >
-              Yes, Delete Hostel
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={isDeleteHostelOpen}
+        onOpenChange={setIsDeleteHostelOpen}
+        title="Delete Hostel"
+        itemName={hostelToDelete?.name || 'Selected Hostel'}
+        itemType="hostel"
+        onSoftDelete={handleSoftRemoveHostel}
+        onHardDelete={handleConfirmDeleteHostel}
+        description="Choose how to delete this hostel. 'Remove from App' hides it from this device only while keeping cloud records. 'Delete Permanently' purges the hostel and associated data completely from the database."
+      />
 
     </DashboardLayout>
   );

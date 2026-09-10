@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-store";
 
@@ -8,6 +8,21 @@ export default function CapacitorBackButtonHandler() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, activeHostelId, setActiveHostelId } = useAuth();
+
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  const activeHostelIdRef = useRef(activeHostelId);
+  activeHostelIdRef.current = activeHostelId;
+
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
+  const setActiveHostelIdRef = useRef(setActiveHostelId);
+  setActiveHostelIdRef.current = setActiveHostelId;
 
   useEffect(() => {
     let activeListener: any = null;
@@ -21,7 +36,13 @@ export default function CapacitorBackButtonHandler() {
         }
 
         activeListener = await App.addListener("backButton", () => {
-          console.log(`[BACK BUTTON PRESSED] Current Path: "${pathname}", Role: ${user?.role}`);
+          const livePath = (typeof window !== 'undefined' ? window.location.pathname : pathnameRef.current) || '';
+          const cleanPath = (livePath || '').replace(/\/+$/, '') || '/';
+          const currentUser = userRef.current;
+          const isChiefWarden = currentUser?.role === 'CHIEF_WARDEN';
+          const currentActiveHostelId = activeHostelIdRef.current || (typeof window !== 'undefined' ? localStorage.getItem('hostelin_active_hostel_id') : null);
+
+          console.log(`[BACK BUTTON PRESSED] CleanPath: "${cleanPath}", Role: ${currentUser?.role}, ActiveHostel: ${currentActiveHostelId}`);
 
           // 1. TIER 1: Close active modals, dialogs, drawers, or mobile sidebars first
           const openDialog = document.querySelector(
@@ -57,26 +78,27 @@ export default function CapacitorBackButtonHandler() {
             return;
           }
 
-          const isChiefWarden = user?.role === 'CHIEF_WARDEN';
-          const activeHostelStored = typeof window !== 'undefined' ? localStorage.getItem('hostelin_active_hostel_id') : null;
-          const cleanPath = (pathname || "").replace(/\/+$/, "");
-
           // 2. TIER 2: If on any sub-page or sub-tab (e.g. /dashboard/students, /dashboard/rooms, /dashboard/fees, etc.)
           // Same back navigation logic for Chief Warden and everyone else: step back in browser history!
-          if (cleanPath && cleanPath !== "/dashboard" && cleanPath.startsWith("/dashboard")) {
-            console.log("[BACK BUTTON] Navigating back to previous page in history (keeping visiting hostel active)...");
-            router.back();
+          if (cleanPath !== "/dashboard" && cleanPath.startsWith("/dashboard")) {
+            console.log(`[BACK BUTTON] Sub-page detected ("${cleanPath}"). Navigating back in history...`);
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              routerRef.current.back();
+            } else {
+              routerRef.current.push('/dashboard');
+            }
             return;
           }
 
           // 3. TIER 3: If at HOME of a visiting hostel (/dashboard with activeHostelId), Chief Warden exits visiting hostel and returns to his own home!
-          if (cleanPath === "/dashboard" && isChiefWarden && (activeHostelId || activeHostelStored)) {
+          if (cleanPath === "/dashboard" && isChiefWarden && currentActiveHostelId) {
             console.log("[BACK BUTTON] Chief Warden at visiting hostel home -> returning to Central Dashboard (his own home)...");
             if (typeof window !== 'undefined') {
               localStorage.removeItem('hostelin_active_hostel_id');
               window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
+              window.history.replaceState({}, '', '/dashboard');
             }
-            setActiveHostelId(null);
+            setActiveHostelIdRef.current(null);
             return;
           }
 
@@ -86,7 +108,7 @@ export default function CapacitorBackButtonHandler() {
             if (isDemo) {
               console.log("[BACK BUTTON] Exiting demo session back to onboarding...");
               localStorage.removeItem('hostelin_is_demo');
-              router.push('/onboarding');
+              routerRef.current.push('/onboarding');
               return;
             }
             console.log("[BACK BUTTON] At Dashboard Home -> EXITING APP NOW!");
@@ -117,7 +139,7 @@ export default function CapacitorBackButtonHandler() {
         activeListener.remove();
       }
     };
-  }, [pathname, user, activeHostelId, setActiveHostelId, router]);
+  }, []); // Mounted once to guarantee zero duplicate listeners across route changes
 
   return null;
 }

@@ -43,6 +43,126 @@
     --sidebar-ring: 221 83% 53%;
   }
 
+
+  .dark {
+    /* Obsidian / Deep Midnight Dark Surface */
+    --background: 224 71% 4%;           /* #090D16 - Pure Deep Slate Night */
+    --foreground: 210 40% 98%;          /* #F8FAFC - Pure Crisp White */
+    --card: 224 60% 7%;                 /* #0D1322 - Deep Card Surface */
+    --card-foreground: 210 40% 98%;
+    --popover: 224 60% 7%;
+    --popover-foreground: 210 40% 98%;
+    
+    --secondary: 224 45% 12%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 224 40% 12%;
+    --muted-foreground: 215 20% 65%;
+    
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 224 35% 16%;
+    --input: 224 35% 16%;
+    --radius: 1rem;
+    
+    /* Dark Sidebar */
+    --sidebar-background: 224 65% 5%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-accent: 224 50% 10%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 224 35% 14%;
+  }
+
+  /* Multi-Hostel Dynamic Blends in Dark Mode */
+  .dark.theme-emerald, .dark .theme-emerald {
+    --primary: 158 75% 48%;
+    --ring: 158 75% 48%;
+    --sidebar-primary: 158 75% 48%;
+    --theme-subtle: 158 45% 10%;
+    --theme-glow: rgba(16, 185, 129, 0.18);
+  }
+  .dark.theme-purple, .dark .theme-purple {
+    --primary: 262 83% 68%;
+    --ring: 262 83% 68%;
+    --sidebar-primary: 262 83% 68%;
+    --theme-subtle: 262 45% 12%;
+    --theme-glow: rgba(168, 85, 247, 0.18);
+  }
+  .dark.theme-rose, .dark .theme-rose {
+    --primary: 346 85% 62%;
+    --ring: 346 85% 62%;
+    --sidebar-primary: 346 85% 62%;
+    --theme-subtle: 346 45% 12%;
+    --theme-glow: rgba(244, 63, 94, 0.18);
+  }
+  .dark.theme-amber, .dark .theme-amber {
+    --primary: 38 92% 55%;
+    --ring: 38 92% 55%;
+    --sidebar-primary: 38 92% 55%;
+    --theme-subtle: 38 45% 10%;
+    --theme-glow: rgba(245, 158, 11, 0.18);
+  }
+  .dark.theme-cyan, .dark .theme-cyan {
+    --primary: 189 94% 50%;
+    --ring: 189 94% 50%;
+    --sidebar-primary: 189 94% 50%;
+    --theme-subtle: 189 45% 10%;
+    --theme-glow: rgba(6, 182, 212, 0.18);
+  }
+  .dark.theme-blue, .dark .theme-blue {
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+    --sidebar-primary: 217 91% 60%;
+    --theme-subtle: 217 45% 12%;
+    --theme-glow: rgba(59, 130, 246, 0.18);
+  }
+  .dark.theme-indigo, .dark .theme-indigo {
+    --primary: 239 84% 70%;
+    --ring: 239 84% 70%;
+    --sidebar-primary: 239 84% 70%;
+    --theme-subtle: 239 45% 12%;
+    --theme-glow: rgba(99, 102, 241, 0.18);
+  }
+  .dark.theme-orange, .dark .theme-orange {
+    --primary: 24 95% 60%;
+    --ring: 24 95% 60%;
+    --sidebar-primary: 24 95% 60%;
+    --theme-subtle: 24 45% 10%;
+    --theme-glow: rgba(249, 115, 22, 0.18);
+  }
+  .dark.theme-teal, .dark .theme-teal {
+    --primary: 174 84% 42%;
+    --ring: 174 84% 42%;
+    --sidebar-primary: 174 84% 42%;
+    --theme-subtle: 174 45% 10%;
+    --theme-glow: rgba(20, 184, 166, 0.18);
+  }
+  .dark.theme-pink, .dark .theme-pink {
+    --primary: 330 85% 65%;
+    --ring: 330 85% 65%;
+    --sidebar-primary: 330 85% 65%;
+    --theme-subtle: 330 45% 12%;
+    --theme-glow: rgba(236, 72, 153, 0.18);
+  }
+  .dark.theme-violet, .dark .theme-violet {
+    --primary: 263 80% 65%;
+    --ring: 263 80% 65%;
+    --sidebar-primary: 263 80% 65%;
+    --theme-subtle: 263 45% 12%;
+    --theme-glow: rgba(139, 92, 246, 0.18);
+  }
+  .dark.theme-slate, .dark .theme-slate {
+    --primary: 215 25% 65%;
+    --ring: 215 25% 65%;
+    --sidebar-primary: 215 25% 65%;
+    --theme-subtle: 215 30% 12%;
+    --theme-glow: rgba(148, 163, 184, 0.18);
+  }
+
   /* Multi-Hostel Vibrant Theme Accents */
   /* Theme Immersion Atmospheric Tints */
   .theme-emerald {

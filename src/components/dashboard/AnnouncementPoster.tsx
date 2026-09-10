@@ -21,6 +21,7 @@ export function AnnouncementPoster() {
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
   const [editMessage, setEditMessage] = useState("");
   const [editExpiry, setEditExpiry] = useState("");
+  const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const { toast } = useToast();
@@ -70,7 +71,6 @@ export function AnnouncementPoster() {
 
   const handleDelete = async (id: string) => {
     if (!db) return;
-    if (!window.confirm("Are you sure you want to delete this announcement?")) return;
 
     try {
       await deleteDoc(doc(db, 'announcements', id));
@@ -166,7 +166,7 @@ export function AnnouncementPoster() {
                       <div className="flex flex-wrap gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                         <span>Posted: {new Date(ann.createdAt?.toDate?.() || Date.now()).toLocaleDateString('en-IN')}</span>
                         {ann.expiryDate && (
-                          <span className={isExpired ? "text-destructive font-extrabold" : "text-blue-600 font-extrabold"}>
+                          <span className={isExpired ? "text-destructive font-extrabold" : "text-primary font-extrabold"}>
                             {isExpired ? `Expired: ${ann.expiryDate}` : `Expires: ${ann.expiryDate}`}
                           </span>
                         )}
@@ -185,7 +185,7 @@ export function AnnouncementPoster() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(ann.id)}
+                        onClick={() => setAnnouncementToDelete(ann.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

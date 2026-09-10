@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IndianRupee, Users, Edit3, Plus, Utensils, Trash2, Loader2, Calendar, Save, DoorClosed } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { 
   AlertDialog,
@@ -79,6 +80,7 @@ export default function MessPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [hiddenExpenseIds, setHiddenExpenseIds] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
   const [newCost, setNewCost] = useState("");
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
@@ -416,20 +418,23 @@ export default function MessPage() {
         </div>
       </div>
 
-      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Expense Record</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently remove this expense record? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setExpenseToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteExpense} className="bg-destructive text-white hover:bg-destructive/90">Delete Record</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteDialog
+        open={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+        title="Delete Expense Record"
+        itemName={expenses?.find(e => e.id === expenseToDelete)?.item || "Expense Record"}
+        itemType="expense"
+        onSoftDelete={async () => {
+          if (expenseToDelete) {
+            setHiddenExpenseIds(prev => [...prev, expenseToDelete]);
+            toast({ title: "Expense Removed from App", description: "Record has been hidden from view on this device." });
+            setIsDeleteConfirmOpen(false);
+            setExpenseToDelete(null);
+          }
+        }}
+        onHardDelete={handleDeleteExpense}
+        description="Choose how to delete this expense. 'Remove from App' hides it from current ledger view on this device. 'Delete Permanently' wipes it from the cloud database."
+      />
     </DashboardLayout>
   );
 }

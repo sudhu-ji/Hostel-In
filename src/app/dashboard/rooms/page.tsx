@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { PlusCircle, Bed, Users, Info, Trash2, Edit3, UserCheck } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   AlertDialog,
@@ -54,6 +55,7 @@ export default function RoomsPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomToDeleteId, setRoomToDeleteId] = useState<string | null>(null);
+  const [hiddenRoomIds, setHiddenRoomIds] = useState<string[]>([]);
   
   const [roomId, setRoomId] = useState("");
   const [roomType, setRoomType] = useState<'Single' | 'Double' | 'Triple' | 'Warden' | 'Abandoned'>('Double');
@@ -95,6 +97,7 @@ export default function RoomsPage() {
 
   // Sort and filter rooms in ascending order by ID for the active hostel only
   const sortedRooms = React.useMemo(() => {
+    const activeRoomsList = (rooms || []).filter(rm => !hiddenRoomIds.includes(rm.id));
     if (!rooms) return [];
     const filtered = rooms.filter(r => (r as any).hostelId ? ((r as any).hostelId === targetHostelId || !targetHostelId || (r as any).hostelId === activeHostel?.id) : true);
     return [...filtered].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
@@ -585,20 +588,23 @@ export default function RoomsPage() {
             </DialogContent>
           </Dialog>
 
-          <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Room Record</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to permanently remove room {roomToDeleteId} from the inventory? This action will also unallot any residents currently assigned to this room.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => { setIsDeleteConfirmOpen(false); setRoomToDeleteId(null); }}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRemoveConfirm} className="bg-destructive text-white hover:bg-destructive/90">Permanently Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDeleteDialog
+            open={isDeleteConfirmOpen}
+            onOpenChange={setIsDeleteConfirmOpen}
+            title="Delete Room Record"
+            itemName={`Room ${roomToDeleteId || ''}`}
+            itemType="room"
+            onSoftDelete={async () => {
+              if (roomToDeleteId) {
+                setHiddenRoomIds(prev => [...prev, roomToDeleteId]);
+                toast({ title: "Room Removed from App", description: `Room ${roomToDeleteId} has been hidden from view.` });
+                setIsDeleteConfirmOpen(false);
+                setRoomToDeleteId(null);
+              }
+            }}
+            onHardDelete={handleRemoveConfirm}
+            description="Choose how to delete this room. 'Remove from App' hides it from this device view. 'Delete Permanently' purges the room and vacates assigned residents from the central database."
+          />
         </>
       )}
     </DashboardLayout>
