@@ -10,13 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Camera, Edit3, KeyRound, Loader2, Save, X, Check, Lock } from 'lucide-react';
+import { Shield, Camera, Edit3, KeyRound, Loader2, Save, X, Check, Lock , Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFirebaseApp, useFirestore } from '@/firebase';
 import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
-import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { VerifiedBadge, UserVerifiedBadge } from '@/components/ui/verified-badge';
 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -114,6 +114,42 @@ export default function ProfilePage() {
     const diffTime = Math.abs(unlockDate.getTime() - now.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return { isLocked: true, remainingDays: diffDays };
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (isReadOnly || !user) return;
+    setIsUploading(true);
+    try {
+      if (user.avatarPublicId) {
+        try {
+          await deleteFromCloudinary(user.avatarPublicId, "image");
+        } catch (e) {
+          console.warn("Cloudinary photo delete error:", e);
+        }
+      }
+
+      const updatedUser: User = {
+        ...user,
+        avatarUrl: "",
+        avatarPublicId: "",
+        avatarVerificationStatus: 'unverified'
+      };
+
+      await updateAllottedUser(updatedUser);
+
+      if (user.role === 'WARDEN' && activeHostel && updateHostel) {
+        await updateHostel({
+          ...activeHostel,
+          wardenAvatarUrl: ""
+        });
+      }
+
+      toast({ title: "Photo Removed", description: "Your profile photo has been removed from your account." });
+    } catch (err) {
+      toast({ title: "Error", description: "Could not remove profile picture.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAvatarClick = async () => {
@@ -303,33 +339,38 @@ export default function ProfilePage() {
                   <AvatarFallback className="bg-primary/5 text-primary text-4xl font-bold">{displayUser?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 {!isReadOnly && (
-                  <>
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                    {Boolean(displayUser?.avatarUrl && displayUser.avatarUrl.trim().length > 0) && (
+                      <button 
+                        type="button"
+                        onClick={handleRemoveAvatar} 
+                        disabled={isUploading}
+                        className="bg-destructive/90 hover:bg-destructive p-2.5 rounded-full shadow-lg text-white hover:scale-110 transition-transform active:scale-95"
+                        title="Remove Photo"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                     <button 
+                      type="button"
                       onClick={handleAvatarClick} 
-                      className="absolute bottom-2 right-2 bg-primary p-3 rounded-full shadow-lg text-primary-foreground hover:scale-110 transition-transform active:scale-95"
+                      disabled={isUploading}
+                      className="bg-primary p-2.5 rounded-full shadow-lg text-primary-foreground hover:scale-110 transition-transform active:scale-95"
                       title="Change Photo"
                     >
-                      {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                      {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                     </button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                  </>
+                  </div>
                 )}
               </div>
               <div className="space-y-2 flex flex-col items-center">
-                {(() => {
-                  const hasPhoto = Boolean(displayUser?.avatarUrl && displayUser.avatarUrl.trim().length > 0);
-                  const isAuthority = displayUser?.role === 'WARDEN' || displayUser?.role === 'CHIEF_WARDEN';
-                  const showBlueTick = hasPhoto && (isAuthority || displayUser?.avatarVerificationStatus === 'verified');
-
-                  return (
-                    <h2 className="text-2xl font-bold font-headline flex items-center justify-center gap-1.5">
-                      {displayUser?.name}
-                      {showBlueTick && (
-                        <VerifiedBadge size={20} />
-                      )}
-                    </h2>
-                  );
-                })()}
+                <h2 className="text-2xl font-bold font-headline flex items-center justify-center gap-1.5">
+                  <span>{displayUser?.name}</span>
+                  {Boolean(displayUser?.avatarUrl && displayUser.avatarUrl.trim().length > 0) && (
+                    <VerifiedBadge size={20} />
+                  )}
+                </h2>
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
                     {displayUser?.role}

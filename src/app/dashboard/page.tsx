@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge, isHostelPhotoCustom } from '@/components/ui/verified-badge';
 import { 
   ShieldCheck,
   MessageSquare,

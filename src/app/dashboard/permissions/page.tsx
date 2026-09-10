@@ -5,6 +5,8 @@ import { requestPhotoPermissions } from '@/lib/permissions';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/lib/auth-store';
+import { UserVerifiedBadge } from '@/components/ui/verified-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,7 @@ import { uploadToCloudinary, deleteFromCloudinary, getCloudinaryDownloadUrl } fr
 import { FileText, Download, Paperclip, Loader2 } from 'lucide-react';
 
 export default function PermissionsPage() {
-  const { user, activeHostel } = useAuth();
+  const { user, allottedUsers, activeHostel } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const db = useFirestore();
@@ -288,7 +290,23 @@ export default function PermissionsPage() {
                         </button>
                       </div>
                     )}
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold text-left">{r.student} • {r.date}</p>
+                    {(() => {
+                        const applicant = allottedUsers.find(u => u.id === r.studentId || u.name === r.student);
+                        return (
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-bold text-left mt-1">
+                            <Avatar className="h-5 w-5 border border-primary/10 shrink-0">
+                              <AvatarImage src={applicant?.avatarUrl} className="object-cover" />
+                              <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">{r.student?.[0] || 'S'}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-bold text-foreground flex items-center gap-1">
+                              <span>{r.student}</span>
+                              <UserVerifiedBadge user={applicant} size={13} />
+                            </span>
+                            <span>•</span>
+                            <span>{r.date}</span>
+                          </div>
+                        );
+                      })()}
                   </div>
                   {(user?.role === 'WARDEN' || user?.role === 'MONITOR') && r.status === 'Pending' && (
                     <div className="flex flex-col gap-2">

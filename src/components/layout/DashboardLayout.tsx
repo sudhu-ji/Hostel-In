@@ -7,7 +7,7 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter,
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Home as HomeIcon, Bed, Utensils, LogOut, Info, Users, UserCheck, CreditCard, Bell, Loader2, UserCircle, AlertCircle, MessageSquare, ShieldCheck, GraduationCap, Check, ArrowLeft } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser as useFirebaseUser, useFirebaseApp } from '@/firebase';
-import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from '@/components/ui/verified-badge';
 import { collection, query, orderBy, doc, writeBatch, limit, setDoc, deleteDoc, serverTimestamp, onSnapshot, updateDoc, getDocs, where } from 'firebase/firestore';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { runSixMonthCleanup, runOneYearUserCleanup } from '@/lib/cleanup';
@@ -1017,11 +1017,9 @@ export function DashboardLayout({ children }: Props) {
                 ? (wardenUser?.avatarUrl || (activeHostel as any)?.wardenAvatarUrl || "") 
                 : (user.avatarUrl || "");
 
-              // Blue verification tick strictly requires an uploaded profile photo.
-              // For Chief Warden and Warden, an uploaded photo grants the badge; for others, avatarVerificationStatus must be 'verified'.
+              // Blue verification tick strictly requires an active profile photo
               const hasPhoto = Boolean(displayFooterAvatar && displayFooterAvatar.trim().length > 0);
-              const isOfficial = user.role === 'CHIEF_WARDEN' || user.role === 'WARDEN' || isVisitingHostel;
-              const showBlueTick = hasPhoto && (isOfficial || user.avatarVerificationStatus === 'verified');
+              const showBlueTick = hasPhoto;
 
               return (
                 <div className="mb-4 px-2 flex items-center gap-3">

@@ -42,6 +42,9 @@ export interface User {
   description?: string;
   branch?: string;
   course?: string;
+  enrollmentNo?: string;
+  category?: string;
+  percentage?: string;
   avatarUrl?: string;
   gender?: 'Male' | 'Female';
   dateOfAllotment?: string;

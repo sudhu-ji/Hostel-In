@@ -1,5 +1,7 @@
 "use client";
 
+import { UserVerifiedBadge } from '@/components/ui/verified-badge';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { requestPhotoPermissions } from '@/lib/permissions';
 import { useRouter } from 'next/navigation';
@@ -497,8 +499,10 @@ export default function ChatPage() {
                       )}>
                         <div className="flex items-center gap-2 px-1">
                           {!isMe && (
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                              {msg.senderName} {msg.senderRole === 'MONITOR' && <span className="text-accent ml-1">• Monitor</span>}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                              <span>{msg.senderName}</span>
+                              <UserVerifiedBadge avatarUrl={msg.avatarUrl || senderUser?.avatarUrl} size={12} />
+                              {msg.senderRole === 'MONITOR' && <span className="text-accent ml-1">• Monitor</span>}
                             </span>
                           )}
                           <span className="text-[9px] font-bold text-muted-foreground/60">{timeString}</span>

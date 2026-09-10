@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
-import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { VerifiedBadge, UserVerifiedBadge } from '@/components/ui/verified-badge';
 import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 
 
@@ -369,10 +369,8 @@ export default function StudentsPage() {
                         </Avatar>
                         <div>
                           <p className="font-bold text-sm leading-tight flex items-center gap-1.5">
-                            {s.name}
-                            {Boolean(s.avatarUrl && s.avatarUrl.trim().length > 0) && s.avatarVerificationStatus === 'verified' && (
-                              <VerifiedBadge size={14} />
-                            )}
+                            <span>{s.name}</span>
+                            <UserVerifiedBadge user={s} size={14} />
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-muted-foreground font-mono tracking-widest">{s.mobile}</span>

@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react';
 import { requestPhotoPermissions } from '@/lib/permissions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/lib/auth-store';
+import { UserVerifiedBadge } from '@/components/ui/verified-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import { uploadToCloudinary, deleteFromCloudinary, getCloudinaryDownloadUrl } fr
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export default function ComplaintsPage() {
-  const { user, activeHostel } = useAuth();
+  const { user, allottedUsers, activeHostel } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   
@@ -273,7 +275,25 @@ export default function ComplaintsPage() {
                         {c.status === 'Solved' ? <CheckCircle2 className="h-4 w-4 text-blue-600" /> : <Clock className="h-4 w-4 text-amber-500" />}
                         <h3 className="font-bold text-lg text-left">{c.issue}</h3>
                       </div>
-                      <p className="text-sm text-muted-foreground text-left">Posted by {c.student} • Room {c.room} • {c.date}</p>
+                      {(() => {
+                        const reporter = allottedUsers.find(u => u.id === c.studentId || u.name === c.student);
+                        return (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground text-left mt-1">
+                            <Avatar className="h-5 w-5 border border-primary/10 shrink-0">
+                              <AvatarImage src={reporter?.avatarUrl} className="object-cover" />
+                              <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-bold">{c.student?.[0] || 'S'}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-semibold text-foreground flex items-center gap-1">
+                              <span>{c.student}</span>
+                              <UserVerifiedBadge user={reporter} size={13} />
+                            </span>
+                            <span>•</span>
+                            <span>Room {c.room}</span>
+                            <span>•</span>
+                            <span>{c.date}</span>
+                          </div>
+                        );
+                      })()}
                       {c.documentUrl && (
                         <div className="mt-2.5 bg-muted/10 p-2 border border-muted-foreground/10 flex items-center justify-between gap-3 max-w-sm rounded-lg">
                           <div className="flex items-center gap-1.5 overflow-hidden">

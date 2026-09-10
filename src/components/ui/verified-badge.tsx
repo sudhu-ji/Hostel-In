@@ -37,3 +37,62 @@ export function VerifiedBadge({ className, size = 18, title = "Verified" }: Veri
     </span>
   );
 }
+
+/**
+ * Standalone Verified Badge that ONLY displays if user has an active, non-empty profile picture (avatarUrl).
+ * If there is no profile picture (or if removed), then no blue tick is shown.
+ */
+export function UserVerifiedBadge({
+  avatarUrl,
+  user,
+  size = 16,
+  className
+}: {
+  avatarUrl?: string;
+  user?: { avatarUrl?: string } | null;
+  size?: number;
+  className?: string;
+}) {
+  const resolved = avatarUrl !== undefined ? avatarUrl : (user?.avatarUrl || '');
+  if (!resolved || resolved.trim().length === 0) return null;
+  return <VerifiedBadge size={size} className={className} />;
+}
+
+/**
+ * Checks if a hostel has a real, custom uploaded photo in localStorage.
+ * Returns false for default placeholder photos or empty arrays.
+ */
+export function isHostelPhotoCustom(hostelId?: string): boolean {
+  if (!hostelId) return false;
+  if (typeof window === 'undefined') return false;
+  try {
+    const saved = localStorage.getItem(`hostel_images_${hostelId}`);
+    if (saved) {
+      const arr = JSON.parse(saved);
+      if (Array.isArray(arr) && arr.length > 0) {
+        const first = String(arr[0] || '');
+        const defaultPhotoPrefix = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5";
+        return first.length > 0 && !first.startsWith(defaultPhotoPrefix);
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+/**
+ * Verified badge specifically for Hostels:
+ * Shows blue tick IF AND ONLY IF the hostel has a custom uploaded photo.
+ */
+export function HostelVerifiedBadge({
+  hostelId,
+  size = 18,
+  className
+}: {
+  hostelId?: string;
+  size?: number;
+  className?: string;
+}) {
+  const hasCustom = isHostelPhotoCustom(hostelId);
+  if (!hasCustom) return null;
+  return <VerifiedBadge size={size} title="Official Verified Hostel" className={className} />;
+}

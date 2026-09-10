@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit3, Info, MapPin, Shield, Camera, Upload, Phone, MessageCircle, ChevronLeft, ChevronRight, Trash2, Users, UserCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { VerifiedBadge } from "@/components/ui/verified-badge";
+import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from "@/components/ui/verified-badge";
 
 export default function HostelDetailsPage() {
   const { user, allottedUsers, activeHostel, updateHostel, updateAllottedUser } = useAuth();

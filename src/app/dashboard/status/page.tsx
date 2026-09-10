@@ -69,7 +69,7 @@ interface RoomItem {
 const capacityMap: Record<string, number> = { 'Single': 1, 'Double': 2, 'Triple': 3, 'Warden': 0, 'Abandoned': 0 };
 
 export default function HostelStatusPage() {
-  const { user, activeHostel, allottedUsers, updateAllottedUser } = useAuth();
+  const { user, activeHostel, allottedUsers, addAllottedUser, updateAllottedUser, removeAllottedUser } = useAuth();
   const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
@@ -638,6 +638,19 @@ export default function HostelStatusPage() {
         percentage: editPercentage.trim(),
         category: editCategory.trim(),
       });
+
+      const matchedUser = allottedUsers.find(u => u.id === selectedStudent.id);
+      if (matchedUser) {
+        await updateAllottedUser({
+          ...matchedUser,
+          name: editName.trim(),
+          branch: editBranch.trim(),
+          enrollmentNo: editEnrollment.trim(),
+          category: editCategory.trim(),
+          percentage: editPercentage.trim()
+        });
+      }
+
       toast({ title: "Student Updated", description: "Changes saved successfully." });
       setIsEditStudentOpen(false);
       setIsStudentActionOpen(false);
@@ -669,18 +682,35 @@ export default function HostelStatusPage() {
         }, { merge: true });
       }
 
-      // 3. Create or update in users collection for login readiness
-      await setDoc(doc(db, 'users', selectedStudent.id), {
+      // 3. Synchronize full User record across all tabs (Students, Rooms, Presenty)
+      const existingUser = allottedUsers.find(u => u.id === selectedStudent.id);
+      const studentMobile = (selectedStudent as any).mobile || selectedStudent.enrollmentNo || '';
+      const userPayload: any = {
+        ...(existingUser || {}),
         id: selectedStudent.id,
         name: selectedStudent.name,
         role: 'STUDENT',
-        branch: selectedStudent.branch,
-        enrollmentNo: selectedStudent.enrollmentNo,
-        category: selectedStudent.category,
+        mobile: studentMobile,
         room: roomId,
         hostelId: targetHostelId,
         hostelName: activeHostel?.name || "Hostel",
-        feeStatus: 'Unpaid',
+        branch: selectedStudent.branch || 'General',
+        enrollmentNo: selectedStudent.enrollmentNo || '',
+        category: selectedStudent.category || 'GEN',
+        percentage: selectedStudent.percentage || 'N/A',
+        dateOfAllotment: existingUser?.dateOfAllotment || new Date().toISOString().split('T')[0],
+        feeStatus: existingUser?.feeStatus || 'Unpaid',
+        gender: existingUser?.gender || 'Male',
+        avatarUrl: (selectedStudent as any).avatarUrl || existingUser?.avatarUrl || '',
+        avatarPublicId: (selectedStudent as any).avatarPublicId || existingUser?.avatarPublicId || '',
+        avatarVerificationStatus: (selectedStudent as any).avatarVerificationStatus || existingUser?.avatarVerificationStatus || 'unverified',
+        isRemoved: false
+      };
+
+      await updateAllottedUser(userPayload);
+
+      await setDoc(doc(db, 'users', selectedStudent.id), {
+        ...userPayload,
         createdAt: serverTimestamp()
       }, { merge: true });
 
@@ -708,6 +738,9 @@ export default function HostelStatusPage() {
         }
       }
 
+      // Synchronize removal across Allotment, Students, Rooms, and Attendance
+      await removeAllottedUser(selectedStudent.id);
+
       toast({ title: "Student Removed", description: "Student removed from shortlist." });
       setIsStudentActionOpen(false);
     } catch (e) {
@@ -731,6 +764,15 @@ export default function HostelStatusPage() {
           await updateDoc(doc(db, 'rooms', roomDoc.id), { residentIds: updatedResidents });
         }
       }
+
+      // Vacate room in allottedUsers state and database so Students and Presenty reflect immediately
+      const matchedUser = allottedUsers.find(u => u.id === std.id);
+      if (matchedUser) {
+        await updateAllottedUser({ ...matchedUser, room: 'N/A' });
+      }
+      try {
+        await updateDoc(doc(db, 'users', std.id), { room: 'N/A' });
+      } catch (e) {}
 
       toast({ title: "Un-allotted", description: `${std.name} moved back to unallotted list.` });
     } catch (e) {

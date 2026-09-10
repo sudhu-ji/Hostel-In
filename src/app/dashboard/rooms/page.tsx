@@ -1,5 +1,8 @@
 "use client";
 
+import { UserVerifiedBadge } from '@/components/ui/verified-badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth, User } from '@/lib/auth-store';
@@ -25,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
 
 interface Room {
   id: string;
@@ -155,7 +158,7 @@ export default function RoomsPage() {
     toast({ title: "Room Saved", description: `Room ${trimmedId} has been successfully updated.` });
     resetForm();
 
-    // 1. Assign room to selected students immediately
+    // 1. Assign room to selected students immediately and sync with Allotment Window
     for (const id of finalResidentIds) {
       const student = allottedUsers.find(u => u.id === id);
       if (student && student.room !== trimmedId) {
@@ -165,12 +168,28 @@ export default function RoomsPage() {
           dateOfAllotment: student.dateOfAllotment || new Date().toISOString().split('T')[0]
         });
       }
+      if (db) {
+        try {
+          await updateDoc(doc(db, 'shortlistedStudents', id), {
+            room: trimmedId,
+            isAllotted: true
+          });
+        } catch (e) {}
+      }
     }
 
     // 2. Vacate room for students who were unselected/removed
     for (const prev of previousResidents) {
       if (!finalResidentIds.includes(prev.id) && prev.room === trimmedId) {
         await updateAllottedUser({ ...prev, room: 'N/A' });
+        if (db) {
+          try {
+            await updateDoc(doc(db, 'shortlistedStudents', prev.id), {
+              room: 'N/A',
+              isAllotted: false
+            });
+          } catch (e) {}
+        }
       }
     }
 
@@ -351,25 +370,39 @@ export default function RoomsPage() {
           <div className="space-y-6 pt-4">
             <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Users size={12} /> Occupants
+                <Users size={12} /> Residing Students
               </p>
               {(() => {
                 const occupants = getRoomResidents(selectedRoom);
                 return occupants.length > 0 ? (
-                  <div className="grid gap-2">
+                  <div className="grid gap-2.5">
                     {occupants.map(s => (
-                      <div key={s.id} className="p-3 bg-muted/20 border border-muted/50 rounded-xl flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-bold text-foreground block">{s.name}</span>
-                          <span className="text-[11px] text-primary font-medium">{s.branch || 'General'}</span>
+                      <div key={s.id} className="p-3 bg-card border border-muted/70 rounded-xl flex items-center justify-between shadow-xs hover:border-primary/30 transition-all">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-9 w-9 border border-primary/10 shrink-0">
+                            <AvatarImage src={s.avatarUrl} className="object-cover" />
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">
+                              {s.name?.[0]?.toUpperCase() || 'S'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5 leading-tight">
+                              <span className="text-sm font-bold text-foreground truncate">{s.name}</span>
+                              <UserVerifiedBadge user={s} size={14} />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                              <span className="text-primary font-semibold">{s.branch || 'General'}</span>
+                              <span className="mx-1.5 opacity-40">•</span>
+                              <span className="font-mono text-xs font-bold">{s.mobile}</span>
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-xs text-muted-foreground font-mono font-bold">{s.mobile}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="p-8 text-center bg-muted/10 rounded-xl border border-dashed">
-                    <p className="text-xs italic text-muted-foreground">No residents currently allotted</p>
+                    <p className="text-xs italic text-muted-foreground">No residents currently allotted to this room.</p>
                   </div>
                 );
               })()}
@@ -452,11 +485,17 @@ export default function RoomsPage() {
                             return (
                               <div key={resId} className="flex items-center justify-between p-2 rounded-lg bg-background border border-muted/70 shadow-sm">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold text-[11px] flex items-center justify-center shrink-0">
-                                    {student?.name?.charAt(0)?.toUpperCase() || 'S'}
-                                  </div>
+                                  <Avatar className="h-7 w-7 border border-primary/10 shrink-0">
+                                    <AvatarImage src={student?.avatarUrl} className="object-cover" />
+                                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-[10px]">
+                                      {student?.name?.charAt(0)?.toUpperCase() || 'S'}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   <div className="truncate">
-                                    <p className="text-xs font-bold text-foreground leading-tight truncate">{student?.name || 'Student'}</p>
+                                    <p className="text-xs font-bold text-foreground leading-tight truncate flex items-center gap-1">
+                                      <span>{student?.name || 'Student'}</span>
+                                      <UserVerifiedBadge user={student} size={13} />
+                                    </p>
                                     <p className="text-[10px] text-muted-foreground font-medium">
                                       <span className="text-primary font-semibold">{student?.branch || 'General'}</span>
                                       <span className="mx-1">•</span>
