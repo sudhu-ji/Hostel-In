@@ -5,7 +5,7 @@
     "ignore": []
   },
   "hosting": {
-    "site": "raman-hostel",
+    "site": "hostelin-app",
     "public": "out",
     "cleanUrls": true,
     "ignore": [
