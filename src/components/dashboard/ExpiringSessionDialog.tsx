@@ -23,6 +23,7 @@ interface ExpiringSessionDialogProps {
   activeHostel?: Hostel | null;
   triggerOpen?: boolean;
   onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ExpiringSessionDialog({
@@ -30,7 +31,8 @@ export function ExpiringSessionDialog({
   allottedUsers,
   activeHostel,
   triggerOpen,
-  onClose
+  onClose,
+  onOpenChange
 }: ExpiringSessionDialogProps) {
   const { hostels } = useAuth();
   const db = useFirestore();
@@ -77,13 +79,11 @@ export function ExpiringSessionDialog({
       return;
     }
 
-    // Auto-check on component mount if expiring session hasn't been acknowledged/cleared yet
-    const isAlreadyPurged = localStorage.getItem(storageKey) === 'true';
-    if (!isAlreadyPurged) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 1500);
-      return () => clearTimeout(timer);
+    // Strictly do not auto-open on mount; only open when explicitly triggered
+    if (triggerOpen) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
     }
   }, [triggerOpen, user, storageKey]);
 

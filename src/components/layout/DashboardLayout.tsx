@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
-import { requestNotificationPermissions, requestPhotoPermissions } from '@/lib/permissions';
+import { requestNotificationPermissions, requestPhotoPermissions, requestLocationPermissions } from '@/lib/permissions';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
@@ -383,14 +383,173 @@ export function DashboardLayout({ children }: Props) {
 
   const { data: allNotifications } = useCollection<any>(notificationsQuery);
   
-  // 1. Prompt for notification and photo/file permissions on startup
+  // 1. Prompt for notification, location, and photo permissions on startup for ALL users
   useEffect(() => {
     const askPermissions = async () => {
       await requestNotificationPermissions();
+      await requestLocationPermissions();
       await requestPhotoPermissions();
     };
     askPermissions();
   }, []);
+
+  // 2. Background Local Notification Scheduling & Action Handler
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user) return;
+    if (!Capacitor.isNativePlatform()) return;
+
+    const setupBackgroundNotifications = async () => {
+      try {
+        await LocalNotifications.createChannel({
+          id: 'hostel_alerts',
+          name: 'Hostel Reminders & Attendance',
+          description: 'Notifications for fee submissions, attendance windows, and hostel notices',
+          importance: 5,
+          visibility: 1,
+          vibration: true
+        });
+
+        await LocalNotifications.registerActionTypes({
+          types: [
+            {
+              id: 'ATTENDANCE_TYPE',
+              actions: [
+                {
+                  id: 'MARK_PRESENT',
+                  title: 'Mark Present',
+                  foreground: true
+                }
+              ]
+            }
+          ]
+        });
+
+        // Cancel previous schedules to avoid duplication
+        await LocalNotifications.cancel({
+          notifications: [{ id: 1001 }, { id: 1002 }, { id: 2001 }, { id: 2002 }]
+        });
+
+        const isStudent = user.role === 'STUDENT' || user.role === 'MONITOR';
+
+        // Fee submit notification arrives at 9:00 AM and 7:00 PM only, strictly for students with pending fees
+        if (isStudent && user.feeStatus !== 'Paid') {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                id: 1001,
+                title: 'Hostel Fee Due Reminder',
+                body: `Gentle reminder: Your mess/hostel fee is currently ${user.feeStatus || 'Unpaid'}. Please complete payment.`,
+                schedule: {
+                  on: { hour: 9, minute: 0 },
+                  repeats: true,
+                  allowWhileIdle: true
+                },
+                channelId: 'hostel_alerts'
+              },
+              {
+                id: 1002,
+                title: 'Hostel Fee Due Reminder',
+                body: `Gentle reminder: Your mess/hostel fee is currently ${user.feeStatus || 'Unpaid'}. Please clear before evening cutoff.`,
+                schedule: {
+                  on: { hour: 19, minute: 0 },
+                  repeats: true,
+                  allowWhileIdle: true
+                },
+                channelId: 'hostel_alerts'
+              }
+            ]
+          });
+        }
+
+        // Attendance notification with direct 'Mark Present' action button in notification shade
+        if (isStudent) {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                id: 2001,
+                title: 'Morning Attendance Active',
+                body: 'Morning attendance window is active (7:00 AM - 10:00 AM). Tap below to mark present.',
+                actionTypeId: 'ATTENDANCE_TYPE',
+                schedule: {
+                  on: { hour: 7, minute: 0 },
+                  repeats: true,
+                  allowWhileIdle: true
+                },
+                channelId: 'hostel_alerts'
+              },
+              {
+                id: 2002,
+                title: 'Evening Attendance Active',
+                body: 'Evening attendance window is active (9:00 PM - 11:59 PM). Tap below to mark present.',
+                actionTypeId: 'ATTENDANCE_TYPE',
+                schedule: {
+                  on: { hour: 21, minute: 0 },
+                  repeats: true,
+                  allowWhileIdle: true
+                },
+                channelId: 'hostel_alerts'
+              }
+            ]
+          });
+        }
+      } catch (err) {
+        console.warn('Background notification setup skipped:', err);
+      }
+    };
+
+    setupBackgroundNotifications();
+
+    let listenerHandle: any = null;
+    const attachListener = async () => {
+      try {
+        listenerHandle = await LocalNotifications.addListener(
+          'localNotificationActionPerformed',
+          async (notificationAction) => {
+            if (notificationAction.actionId === 'MARK_PRESENT') {
+              const hour = new Date().getHours();
+              const session = hour < 12 ? 'morning' : 'evening';
+              const field = session === 'morning' ? 'morningPresentIds' : 'eveningPresentIds';
+              const today = new Date().toISOString().split('T')[0];
+
+              if (db && user?.id) {
+                try {
+                  const { setDoc, doc, arrayUnion, serverTimestamp } = await import('firebase/firestore');
+                  await setDoc(doc(db, 'attendance', today), {
+                    date: today,
+                    [field]: arrayUnion(user.id)
+                  }, { merge: true });
+
+                  await setDoc(doc(db, 'users', user.id, 'attendance', `${today}-${session}`), {
+                    date: today,
+                    session,
+                    status: 'present',
+                    method: 'notification_action',
+                    timestamp: serverTimestamp(),
+                    hostelId: user.hostelId || 'default-hostel'
+                  }, { merge: true });
+
+                  toast({
+                    title: 'Presence Marked!',
+                    description: `${session === 'morning' ? 'Morning' : 'Evening'} attendance recorded successfully from notification bar.`
+                  });
+                } catch (e) {
+                  console.error('Error marking attendance via notification action:', e);
+                }
+              }
+            }
+          }
+        );
+      } catch (e) {}
+    };
+
+    attachListener();
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
+    };
+  }, [user, db]);
 
   const notifications = React.useMemo(() => {
     if (!allNotifications || !user) return [];
@@ -784,21 +943,21 @@ export function DashboardLayout({ children }: Props) {
       <div className={cn("flex min-h-screen bg-background w-full", themeClass)}>
         {!isChiefWardenHome && (
         <Sidebar className="border-r border-sidebar-border shadow-xl">
-          <SidebarHeader className="p-6">
+          <SidebarHeader className="p-5 border-b border-sidebar-border/40 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl overflow-hidden shadow-md shrink-0">
-                <img src="/icon.png" alt="Hostel In" className="h-full w-full object-cover" />
+              <div className="h-11 w-11 rounded-2xl overflow-hidden shadow-md shrink-0 border-2 border-primary/20 bg-card p-0.5">
+                <img src="/icon.png" alt="Hostel In" className="h-full w-full object-cover rounded-xl" />
               </div>
-              <div className="overflow-hidden">
-                <h2 className="text-lg font-headline text-sidebar-primary font-black uppercase tracking-tighter truncate">Hostel In</h2>
-                <p className="text-[9px] font-bold text-sidebar-foreground opacity-80 uppercase tracking-widest truncate">
+              <div className="overflow-hidden text-left">
+                <h2 className="text-base font-headline text-primary font-black uppercase tracking-tight truncate">Hostel In</h2>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate">
                   {currentHostel?.name || "Campus Central"}
                 </p>
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent className="px-3 py-2">
-            <SidebarMenu className="space-y-1">
+          <SidebarContent className="px-4 py-4">
+            <SidebarMenu className="space-y-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -806,31 +965,30 @@ export function DashboardLayout({ children }: Props) {
                     <SidebarMenuButton 
                       isActive={isActive}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                        "w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 group relative",
                         isActive 
-                          ? "bg-primary/10 text-primary font-black border-l-4 border-l-primary shadow-xs" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "bg-primary/15 text-primary font-black shadow-xs" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60 font-semibold"
                       )}
                       onClick={() => handleNavigation(item.href)}
                     >
                       {navLoading === item.href ? (
-                        <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 text-primary">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
+                        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
                       ) : (
-                        <div className={cn(
-                          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-all group-hover:scale-105",
-                          isActive ? "bg-primary text-white shadow-xs" : "bg-muted/70 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-                        )}>
-                          <item.icon className="h-4 w-4" />
-                        </div>
+                        <item.icon className={cn(
+                          "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
+                          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                        )} />
                       )}
                       <span className={cn(
-                        "font-bold text-xs uppercase tracking-wider font-headline",
-                        isActive ? "text-primary" : "text-foreground/80 group-hover:text-foreground"
+                        "font-bold text-xs uppercase tracking-wide font-headline text-left truncate",
+                        isActive ? "text-primary font-black" : "text-foreground/80 group-hover:text-foreground"
                       )}>
                         {item.label}
                       </span>
+                      {isActive && (
+                        <span className="ml-auto h-2 w-2 rounded-full bg-primary shrink-0 shadow-xs" />
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -897,15 +1055,22 @@ export function DashboardLayout({ children }: Props) {
         </Sidebar>
         )}
 
-        <SidebarInset className="flex-1 overflow-auto">
+        <SidebarInset className="flex-1 overflow-auto relative bg-background">
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-primary/[0.04] to-transparent" />
           {/* Top Navigation Header */}
           {!isChiefWardenHome && (
-          <header className="h-16 border-b bg-card/90 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
+          <header className="h-16 border-b border-primary/20 bg-gradient-to-r from-primary/10 via-card/95 to-card/95 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-30 shadow-xs relative">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/70" />
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-primary hover:scale-110 transition-transform" />
               <div className="flex items-center gap-3">
-                <div className="font-headline text-lg font-black uppercase tracking-tighter text-foreground">
-                  {navItems.find(i => i.href === pathname)?.label || 'Dashboard'}
+                <div className="font-headline text-lg font-black uppercase tracking-tighter text-foreground flex items-center gap-2">
+                  <span>{navItems.find(i => i.href === pathname)?.label || 'Dashboard'}</span>
+                  {currentHostel && (
+                    <span className="hidden md:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-widest">
+                      {currentHostel.name}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

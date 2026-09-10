@@ -251,7 +251,7 @@ export function DocumentDownloadDialog({ user, allottedUsers, isChiefWardenAllHo
 
         // Loop over each hostel and generate complete structured dossier
         targetHostels.forEach((h, index) => {
-          const hStudents = allottedUsers.filter(u => !u.isRemoved && (!u.hostelId || u.hostelId === h.id));
+          const hStudents = allottedUsers.filter(u => !u.isRemoved && ['STUDENT', 'MONITOR'].includes(u.role || '') && (!u.hostelId || u.hostelId === h.id));
           const hStudentIds = hStudents.map(u => u.id);
 
           const hAttendance = attendanceData.filter(att => isDateInScope(att.date));
@@ -686,10 +686,11 @@ export function DocumentDownloadDialog({ user, allottedUsers, isChiefWardenAllHo
           }
         }
 
-        // 3. Residents List Section
+        // 3. Residents List Section (Strictly Students & Monitors - Wardens and Staff are excluded)
         if (includeResidents) {
           htmlContent += `<h2>3. Residents List</h2>`;
-          const listToDisplay = isAllResidents ? allottedUsers.filter(u => !u.hostelId || u.hostelId === hostelId) : allottedUsers.filter(u => u.id === selectedStudentId);
+          const listToDisplay = (isAllResidents ? allottedUsers.filter(u => !u.hostelId || u.hostelId === hostelId) : allottedUsers.filter(u => u.id === selectedStudentId))
+            .filter(u => !u.isRemoved && ['STUDENT', 'MONITOR'].includes(u.role || ''));
           
           if (listToDisplay.length === 0) {
             htmlContent += `<p style="font-size: 12px; color: #64748b; font-style: italic;">No users found.</p>`;

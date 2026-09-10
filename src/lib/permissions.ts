@@ -2,24 +2,15 @@ import { Capacitor } from '@capacitor/core';
 import { Camera } from '@capacitor/camera';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
-const isBypassedUser = () => {
-  if (typeof window === 'undefined') return false;
-  if (localStorage.getItem('hostelin_is_demo') === 'true') return true;
-  const auth = localStorage.getItem('hostelin_auth');
-  if (auth && auth.includes('CHIEF_WARDEN')) return true;
-  return false;
-};
-
 /**
  * Checks and requests photo & camera permissions on Capacitor/native platforms.
- * Remembers user choice and avoids re-prompting once granted.
  */
 export async function requestPhotoPermissions(): Promise<boolean> {
-  if (isBypassedUser()) {
+  if (typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true') {
     return true;
   }
   if (!Capacitor.isNativePlatform()) {
-    return true; // Browser handles input file selection permissions automatically
+    return true;
   }
   try {
     const status = await Camera.checkPermissions();
@@ -35,19 +26,15 @@ export async function requestPhotoPermissions(): Promise<boolean> {
     }
     return true;
   } catch (err) {
-    console.warn("Failed to request photo permissions, falling back to true:", err);
+    console.warn("Failed to request photo permissions:", err);
     return true;
   }
 }
 
 /**
- * Checks and requests system notification permissions on Capacitor/native platforms or web browser.
- * Persists decision to prevent repeat popups.
+ * Checks and requests system notification permissions on Android (POST_NOTIFICATIONS) and Web.
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (isBypassedUser()) {
-    return true;
-  }
   if (typeof window !== 'undefined') {
     localStorage.setItem('hostelin_notif_requested', 'true');
   }
@@ -69,13 +56,42 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     const status = await LocalNotifications.checkPermissions();
     if (status.display !== 'granted') {
       const requestStatus = await LocalNotifications.requestPermissions();
-      return requestStatus.display === 'granted';
+      const granted = requestStatus.display === 'granted';
+      if (granted && typeof window !== 'undefined') {
+        localStorage.setItem('hostelin_notif_granted', 'true');
+      }
+      return granted;
     }
     return true;
   } catch (err) {
-    console.warn("Failed to request local notification permissions, falling back to true:", err);
+    console.warn("Failed to request local notification permissions:", err);
     return true;
   }
+}
+
+/**
+ * Checks and prompts for GPS Geolocation permissions on Android and Web browsers.
+ */
+export async function requestLocationPermissions(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  
+  return new Promise((resolve) => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          localStorage.setItem('hostelin_location_permission', 'granted');
+          resolve(true);
+        },
+        (err) => {
+          console.warn("Location permission prompt result:", err.message);
+          resolve(false);
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+      );
+    } else {
+      resolve(false);
+    }
+  });
 }
 
 /**

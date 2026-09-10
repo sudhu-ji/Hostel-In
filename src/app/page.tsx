@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
+import { requestNotificationPermissions, requestLocationPermissions } from '@/lib/permissions';
 
 export default function LoginPage() {
   const [mobile, setMobile] = useState("");
@@ -48,6 +49,15 @@ export default function LoginPage() {
       setShowSlowWarning(true);
     }, 5000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Prompt for Notification & Location Permissions immediately on initial app launch/install for all users
+  useEffect(() => {
+    const initPermissions = async () => {
+      await requestNotificationPermissions();
+      await requestLocationPermissions();
+    };
+    initPermissions();
   }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

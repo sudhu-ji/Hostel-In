@@ -29,9 +29,10 @@ import { useFirestore } from '@/firebase';
 import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 
 export default function StaffPage() {
-  const { user: currentUser, allottedUsers, addAllottedUser, updateAllottedUser, removeAllottedUser, resetUserPassword, activeHostel } = useAuth();
+  const { user: currentUser, allottedUsers, addAllottedUser, updateAllottedUser, removeAllottedUser, softRemoveAllottedUser, resetUserPassword, activeHostel } = useAuth();
   const currentHostelName = activeHostel?.name || currentUser?.hostelName || 'Hostel';
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -130,11 +131,24 @@ export default function StaffPage() {
     setIsResetConfirmOpen(false);
   };
 
+  const handleSoftRemove = async () => {
+    if (staffToManage) {
+      try {
+        await softRemoveAllottedUser(staffToManage);
+        toast({ title: "Staff Removed from App", description: "Staff member hidden from active registry." });
+        setStaffToManage(null);
+      } catch (err) {
+        toast({ title: "Error", description: "Could not remove staff.", variant: "destructive" });
+      }
+    }
+    setIsDeleteConfirmOpen(false);
+  };
+
   const handleRemoveConfirm = async () => {
     if (staffToManage) {
       try {
         await removeAllottedUser(staffToManage);
-        toast({ title: "Staff Removed", description: "The record has been deleted from the registry." });
+        toast({ title: "Staff Deleted Permanently", description: "The record has been permanently wiped from the database." });
         setStaffToManage(null);
       } catch (err) {
         toast({ title: "Error", description: "Could not remove staff.", variant: "destructive" });
@@ -146,7 +160,7 @@ export default function StaffPage() {
   // Strictly filter for STAFF role of active hostel only
   const targetHostelId = activeHostel?.id || currentUser?.hostelId;
   const staffList = allottedUsers.filter(u => 
-    u.role === 'STAFF' && 
+    !u.isRemoved && u.role === 'STAFF' && 
     (!targetHostelId || u.hostelId === targetHostelId)
   );
   const filtered = staffList.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));

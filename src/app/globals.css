@@ -44,65 +44,90 @@
   }
 
   /* Multi-Hostel Vibrant Theme Accents */
+  /* Theme Immersion Atmospheric Tints */
   .theme-emerald {
     --primary: 158 75% 38%;
     --ring: 158 75% 38%;
     --sidebar-primary: 158 75% 38%;
+    --theme-subtle: 158 75% 96%;
+    --theme-glow: rgba(5, 150, 105, 0.08);
   }
   .theme-purple {
     --primary: 262 83% 58%;
     --ring: 262 83% 58%;
     --sidebar-primary: 262 83% 58%;
+    --theme-subtle: 262 83% 97%;
+    --theme-glow: rgba(124, 58, 237, 0.08);
   }
   .theme-rose {
     --primary: 346 77% 50%;
     --ring: 346 77% 50%;
     --sidebar-primary: 346 77% 50%;
+    --theme-subtle: 346 77% 97%;
+    --theme-glow: rgba(225, 29, 72, 0.08);
   }
   .theme-amber {
     --primary: 38 92% 50%;
     --ring: 38 92% 50%;
     --sidebar-primary: 38 92% 50%;
+    --theme-subtle: 38 92% 96%;
+    --theme-glow: rgba(217, 119, 6, 0.08);
   }
   .theme-cyan {
     --primary: 189 94% 43%;
     --ring: 189 94% 43%;
     --sidebar-primary: 189 94% 43%;
+    --theme-subtle: 189 94% 96%;
+    --theme-glow: rgba(8, 145, 178, 0.08);
   }
   .theme-blue {
     --primary: 221.2 83.2% 53.3%;
     --ring: 221.2 83.2% 53.3%;
     --sidebar-primary: 221.2 83.2% 53.3%;
+    --theme-subtle: 221 83% 97%;
+    --theme-glow: rgba(37, 99, 235, 0.08);
   }
   .theme-indigo {
     --primary: 239 84% 67%;
     --ring: 239 84% 67%;
     --sidebar-primary: 239 84% 67%;
+    --theme-subtle: 239 84% 97%;
+    --theme-glow: rgba(79, 70, 229, 0.08);
   }
   .theme-orange {
     --primary: 24 95% 53%;
     --ring: 24 95% 53%;
     --sidebar-primary: 24 95% 53%;
+    --theme-subtle: 24 95% 96%;
+    --theme-glow: rgba(234, 88, 12, 0.08);
   }
   .theme-teal {
     --primary: 174 84% 35%;
     --ring: 174 84% 35%;
     --sidebar-primary: 174 84% 35%;
+    --theme-subtle: 174 84% 96%;
+    --theme-glow: rgba(13, 148, 136, 0.08);
   }
   .theme-pink {
     --primary: 330 81% 60%;
     --ring: 330 81% 60%;
     --sidebar-primary: 330 81% 60%;
+    --theme-subtle: 330 81% 97%;
+    --theme-glow: rgba(219, 39, 119, 0.08);
   }
   .theme-violet {
     --primary: 263 70% 50%;
     --ring: 263 70% 50%;
     --sidebar-primary: 263 70% 50%;
+    --theme-subtle: 263 70% 97%;
+    --theme-glow: rgba(139, 92, 246, 0.08);
   }
   .theme-slate {
     --primary: 215 16% 47%;
     --ring: 215 16% 47%;
     --sidebar-primary: 215 16% 47%;
+    --theme-subtle: 215 16% 96%;
+    --theme-glow: rgba(71, 85, 105, 0.08);
   }
 }
 

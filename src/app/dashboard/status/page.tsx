@@ -78,6 +78,7 @@ export default function HostelStatusPage() {
 
   // Modal Open States
   const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
+  const [isExpiringDialogOpen, setIsExpiringDialogOpen] = useState(false);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isAllotmentModalOpen, setIsAllotmentModalOpen] = useState(false);
   
@@ -431,7 +432,8 @@ export default function HostelStatusPage() {
     if (!db || !sessionDocRef) return;
     setIsSessionCompleted(false);
     setIsSessionModalOpen(false);
-    toast({ title: "Session Reopened", description: "Session lockout removed." });
+    setIsExpiringDialogOpen(true);
+    toast({ title: "Session Reopened", description: "Session lockout removed. Review expiring session data." });
 
     setIsSavingSession(true);
     (async () => {
@@ -739,7 +741,7 @@ export default function HostelStatusPage() {
   if (!isAuthorized) {
     return (
       <DashboardLayout>
-      {user && <ExpiringSessionDialog user={user} allottedUsers={allottedUsers} activeHostel={activeHostel} />}
+      
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -749,6 +751,15 @@ export default function HostelStatusPage() {
 
   return (
     <DashboardLayout>
+      {user && (
+        <ExpiringSessionDialog 
+          user={user} 
+          allottedUsers={allottedUsers} 
+          activeHostel={activeHostel} 
+          triggerOpen={isExpiringDialogOpen} 
+          onOpenChange={setIsExpiringDialogOpen} 
+        />
+      )}
       <div className="container mx-auto p-4 md:p-6 space-y-6 max-w-5xl animate-in fade-in duration-500">
         
         {/* Header with requested exact subtitle */}

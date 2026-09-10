@@ -12,7 +12,7 @@ import { AttendanceMarker } from '@/components/dashboard/AttendanceMarker';
 import { AttendanceOverview } from '@/components/dashboard/AttendanceOverview';
 import { AnnouncementPoster } from '@/components/dashboard/AnnouncementPoster';
 import { DocumentDownloadDialog } from '@/components/dashboard/DocumentDownloadDialog';
-import { ExpiringSessionDialog } from '@/components/dashboard/ExpiringSessionDialog';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from '@/components/ui/button';
@@ -736,7 +736,7 @@ export default function DashboardPage() {
           <span>✨ Welcome back!</span>
         </div>
       )}
-      {user && <ExpiringSessionDialog user={user} allottedUsers={allottedUsers} activeHostel={activeHostel} />}
+      
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="space-y-8 max-w-6xl mx-auto">
           

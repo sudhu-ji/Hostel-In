@@ -16,6 +16,8 @@ export interface Hostel {
   wardenMobile: string;
   wardenGender?: 'Male' | 'Female';
   wardenAbout?: string;
+  wardenAvatarUrl?: string;
+  isRemoved?: boolean;
   themeColor: 'blue' | 'emerald' | 'purple' | 'rose' | 'amber' | 'cyan' | 'indigo' | 'orange' | 'teal' | 'pink' | 'violet' | 'slate';
   institutionName?: string;
   totalRooms?: number;
@@ -853,6 +855,21 @@ export function useAuth() {
     }
   };
 
+  const softRemoveAllottedUser = async (id: string) => {
+    setAllottedUsers(prev => prev.map(u => u.id === id ? { ...u, isRemoved: true } : u));
+    if (db) {
+      try {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
+        await Promise.race([
+          updateDoc(doc(db, 'users', id), { isRemoved: true }),
+          timeoutPromise
+        ]);
+      } catch (err) {
+        console.warn('Firestore user soft-delete deferred (saved locally):', err);
+      }
+    }
+  };
+
   const removeAllottedUser = async (id: string) => {
     // 1. Track deleted ID in localStorage to prevent snapshot resurrection
     if (typeof window !== 'undefined') {
@@ -976,6 +993,7 @@ export function useAuth() {
     addAllottedUser, 
     updateAllottedUser, 
     removeAllottedUser, 
+    softRemoveAllottedUser,
     resetUserPassword,
     verifySecurityQuestion,
     resetChiefWardenPassword,

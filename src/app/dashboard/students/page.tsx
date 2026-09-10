@@ -29,6 +29,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, arrayUnion, arrayRemove, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { ConfirmDeleteDialog } from '@/components/dashboard/ConfirmDeleteDialog';
 
 
 interface Room {
@@ -43,7 +44,7 @@ interface Room {
 const capacityMap: Record<string, number> = { 'Single': 1, 'Double': 2, 'Triple': 3, 'Warden': 0, 'Abandoned': 0 };
 
 export default function StudentsPage() {
-  const { user: currentUser, allottedUsers, addAllottedUser, updateAllottedUser, removeAllottedUser, resetUserPassword, activeHostel } = useAuth();
+  const { user: currentUser, allottedUsers, addAllottedUser, updateAllottedUser, removeAllottedUser, softRemoveAllottedUser, resetUserPassword, activeHostel } = useAuth();
   const currentHostelName = activeHostel?.name || currentUser?.hostelName || 'Hostel';
   const { toast } = useToast();
   const db = useFirestore();
@@ -242,6 +243,28 @@ export default function StudentsPage() {
     setIsResetConfirmOpen(false);
   };
 
+  const handleSoftRemove = async () => {
+    if (!studentToManage) return;
+    const idToDelete = studentToManage;
+    const student = allottedUsers.find(u => u.id === idToDelete);
+
+    setIsDeleteConfirmOpen(false);
+    setStudentToManage(null);
+    toast({ title: "Student Removed from App", description: `${student?.name || 'Student'} hidden from active view. Room slot vacated.` });
+
+    try {
+      if (student?.room && student.room !== 'N/A' && db) {
+        const roomRef = doc(db, 'rooms', student.room);
+        try {
+          await updateDoc(roomRef, { residentIds: arrayRemove(idToDelete) });
+        } catch (e) {}
+      }
+      await softRemoveAllottedUser(idToDelete);
+    } catch (err) {
+      console.warn("Soft remove student error:", err);
+    }
+  };
+
   const handleRemoveConfirm = async () => {
     if (!studentToManage) {
       setIsDeleteConfirmOpen(false);
@@ -251,13 +274,11 @@ export default function StudentsPage() {
     const idToDelete = studentToManage;
     const student = allottedUsers.find(u => u.id === idToDelete);
 
-    // Optimistically dismiss dialog and notify
     setIsDeleteConfirmOpen(false);
     setStudentToManage(null);
-    toast({ title: "Student Removed", description: "The record has been permanently deleted and room slot vacated." });
+    toast({ title: "Student Deleted Permanently", description: "The record has been permanently deleted from cloud database and room slot vacated." });
 
     try {
-      // Automatically vacate room slot on student removal
       if (student?.room && student.room !== 'N/A' && db) {
         const roomRef = doc(db, 'rooms', student.room);
         try {
@@ -733,23 +754,16 @@ export default function StudentsPage() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <Trash2 className="text-destructive h-5 w-5" />
-                  Confirm Removal
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to permanently remove this student from {currentHostelName} records? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setStudentToManage(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRemoveConfirm} className="bg-destructive text-white hover:bg-destructive/90">Permanently Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDeleteDialog
+            open={isDeleteConfirmOpen}
+            onOpenChange={setIsDeleteConfirmOpen}
+            title="Delete Student Record"
+            itemName={allottedUsers.find(u => u.id === studentToManage)?.name || 'Selected Student'}
+            itemType="student"
+            onSoftDelete={handleSoftRemove}
+            onHardDelete={handleRemoveConfirm}
+            description="Choose how to delete this student. 'Remove from App' hides them from active hostel screens and vacates their room while preserving historical logs. 'Delete Permanently' purges the student completely from cloud storage."
+          />
 
           {/* Profile Picture Verification Dialog */}
           <Dialog open={!!verifyingUser} onOpenChange={(open) => !open && setVerifyingUser(null)}>
