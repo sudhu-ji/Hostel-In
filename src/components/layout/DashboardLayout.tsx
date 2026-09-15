@@ -5,9 +5,10 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-store';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Home as HomeIcon, Bed, Utensils, LogOut, Info, Users, UserCheck, CreditCard, Bell, Moon, Sun, Loader2, UserCircle, AlertCircle, MessageSquare, ShieldCheck, GraduationCap, Check, ArrowLeft } from 'lucide-react';
+import { Home as HomeIcon, Bed, Utensils, LogOut, Info, Users, UserCheck, CreditCard, Bell, Moon, Sun, Loader2, UserCircle, AlertCircle, MessageSquare, MessageSquareText, ShieldCheck, GraduationCap, Check, ArrowLeft } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser as useFirebaseUser, useFirebaseApp } from '@/firebase';
 import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from '@/components/ui/verified-badge';
+import { FeedbackManagerModal } from '@/components/dashboard/FeedbackManagerModal';
 import { collection, query, orderBy, doc, writeBatch, limit, setDoc, deleteDoc, serverTimestamp, onSnapshot, updateDoc, getDocs, where } from 'firebase/firestore';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { runSixMonthCleanup, runOneYearUserCleanup } from '@/lib/cleanup';
@@ -41,6 +42,7 @@ export function DashboardLayout({ children }: Props) {
   const isDemoSession = typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true' && user?.id === 'demo-warden-primary';
   // Manual Dark / Light Mode state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
   const isVisitingHostel = isChiefWarden && !!activeHostelId;
@@ -581,6 +583,34 @@ export function DashboardLayout({ children }: Props) {
                   foreground: true
                 }
               ]
+            },
+            {
+              id: 'FEEDBACK_POLL_TYPE',
+              actions: [
+                {
+                  id: 'VOTE_OPT_0',
+                  title: 'Option 1',
+                  foreground: false
+                },
+                {
+                  id: 'VOTE_OPT_1',
+                  title: 'Option 2',
+                  foreground: false
+                }
+              ]
+            },
+            {
+              id: 'FEEDBACK_QUESTION_TYPE',
+              actions: [
+                {
+                  id: 'REPLY_FEEDBACK',
+                  title: 'Reply',
+                  input: true,
+                  inputButtonTitle: 'Send',
+                  inputPlaceholder: 'Type your reply here...',
+                  foreground: false
+                }
+              ]
             }
           ]
         });
@@ -697,6 +727,58 @@ export function DashboardLayout({ children }: Props) {
                   console.error('Error marking attendance via notification action:', e);
                 }
               }
+            } else if (notificationAction.actionId === 'REPLY_FEEDBACK' && notificationAction.inputValue) {
+              // Direct text reply from Android Notification bar without opening app!
+              const fbId = notificationAction.notification?.extra?.feedbackId;
+              const hId = notificationAction.notification?.extra?.hostelId || currentHostel?.id || user?.hostelId;
+              if (fbId && hId && db && user?.id) {
+                try {
+                  const { updateDoc, doc } = await import('firebase/firestore');
+                  await updateDoc(doc(db, 'hostels', hId, 'feedbacks', fbId), {
+                    [`replies.${user.id}`]: {
+                      userName: user.name || 'Resident',
+                      userRole: user.role || 'STUDENT',
+                      userRoom: user.room || 'N/A',
+                      replyText: notificationAction.inputValue,
+                      repliedAt: new Date().toISOString()
+                    }
+                  });
+                  toast({
+                    title: "Response Recorded",
+                    description: "Your reply was submitted directly from the notification bar."
+                  });
+                } catch (e) {
+                  console.warn("Notification reply failed:", e);
+                }
+              }
+            } else if (notificationAction.actionId && notificationAction.actionId.startsWith('VOTE_OPT_')) {
+              // Direct vote from Android Notification bar without opening app!
+              const optIdx = parseInt(notificationAction.actionId.replace('VOTE_OPT_', ''), 10);
+              const fbId = notificationAction.notification?.extra?.feedbackId;
+              const hId = notificationAction.notification?.extra?.hostelId || currentHostel?.id || user?.hostelId;
+              if (fbId && hId && db && user?.id) {
+                try {
+                  const { updateDoc, doc, getDoc } = await import('firebase/firestore');
+                  const fbSnap = await getDoc(doc(db, 'hostels', hId, 'feedbacks', fbId));
+                  const fbData = fbSnap.data();
+                  const optText = fbData?.options?.[optIdx] || `Option ${optIdx + 1}`;
+                  await updateDoc(doc(db, 'hostels', hId, 'feedbacks', fbId), {
+                    [`votes.${user.id}`]: {
+                      userName: user.name || 'Resident',
+                      userRole: user.role || 'STUDENT',
+                      optionIndex: optIdx,
+                      optionText: optText,
+                      votedAt: new Date().toISOString()
+                    }
+                  });
+                  toast({
+                    title: "Vote Recorded",
+                    description: `Voted for "${optText}" directly from notification bar.`
+                  });
+                } catch (e) {
+                  console.warn("Notification vote failed:", e);
+                }
+              }
             }
           }
         );
@@ -722,6 +804,16 @@ export function DashboardLayout({ children }: Props) {
       // Filter out chat notifications for Warden and Staff
       if (n.type === 'chat' && ['WARDEN', 'STAFF'].includes(user.role || '')) {
         return false;
+      }
+
+      // Feedback notifications for residents of this hostel
+      if (n.type === 'feedback') {
+        const myHostelId = currentHostel?.id || user?.hostelId;
+        if (!n.hostelId || n.hostelId === myHostelId) {
+          if (n.userId === 'residents' || n.userId === 'all' || n.userId === user.id) {
+            return true;
+          }
+        }
       }
 
       // All users see notifications targeted to 'all' or their specific user ID
@@ -797,8 +889,13 @@ export function DashboardLayout({ children }: Props) {
                     schedule: { at: new Date(Date.now() + 500) },
                     sound: undefined,
                     attachments: [],
-                    actionTypeId: "",
-                    extra: null
+                    actionTypeId: n.type === 'feedback' 
+                      ? (n.feedbackType === 'poll' ? 'FEEDBACK_POLL_TYPE' : 'FEEDBACK_QUESTION_TYPE')
+                      : "",
+                    extra: {
+                      feedbackId: n.feedbackId,
+                      hostelId: n.hostelId || currentHostel?.id || user?.hostelId
+                    }
                   }
                 ]
               });
@@ -1061,14 +1158,14 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'About Hostel', href: '/dashboard/hostel' },
     ],
     STUDENT: [
-      { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
+      { icon: UserCircle, label: 'My Profile', href: '/dashboard/profile' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
       { icon: Bed, label: 'Rooms', href: '/dashboard/rooms' },
       { icon: Utensils, label: 'Mess Menu', href: '/dashboard/mess' },
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ],
     MONITOR: [
-      { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
+      { icon: UserCircle, label: 'My Profile', href: '/dashboard/profile' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
       { icon: UserCheck, label: 'Hostel Working Staff', href: '/dashboard/staff' },
       { icon: Bed, label: 'Rooms', href: '/dashboard/rooms' },
@@ -1077,6 +1174,7 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ],
     STAFF: [
+      { icon: UserCircle, label: 'My Profile', href: '/dashboard/profile' },
       { icon: Utensils, label: 'Mess Updates', href: '/dashboard/mess' },
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ]
@@ -1229,6 +1327,20 @@ export function DashboardLayout({ children }: Props) {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Feedbacks Button (Visible to Warden, Monitor, and Chief Warden when visiting any hostel) */}
+              {Boolean((user?.role === 'WARDEN' || user?.role === 'MONITOR' || (user?.role === 'CHIEF_WARDEN' && isVisitingHostel)) && currentHostel?.id) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                  className="h-10 px-3 rounded-xl border-primary/25 hover:bg-primary/10 text-primary font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                  title="Hostel Feedbacks & Polls"
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Feedbacks</span>
+                </Button>
+              )}
+
               {/* Dark / Light Mode Toggle Button near Notification Bell */}
               <Button
                 variant="ghost"
@@ -1409,6 +1521,17 @@ export function DashboardLayout({ children }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Hostel Feedback & Poll Management Modal */}
+      {currentHostel?.id && (
+        <FeedbackManagerModal
+          open={isFeedbackModalOpen}
+          onOpenChange={setIsFeedbackModalOpen}
+          hostelId={currentHostel.id}
+          hostelName={currentHostel.name}
+          currentUser={user}
+        />
+      )}
     </SidebarProvider>
   );
 }

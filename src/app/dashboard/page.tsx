@@ -9,6 +9,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth, User, Hostel } from '@/lib/auth-store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AttendanceMarker } from '@/components/dashboard/AttendanceMarker';
+import { ActiveFeedbackCard } from '@/components/dashboard/ActiveFeedbackCard';
 import { AttendanceOverview } from '@/components/dashboard/AttendanceOverview';
 import { AnnouncementPoster } from '@/components/dashboard/AnnouncementPoster';
 import { DocumentDownloadDialog } from '@/components/dashboard/DocumentDownloadDialog';
@@ -1157,6 +1158,15 @@ export default function DashboardPage() {
                   </Card>
                 </div>
 
+                {/* ACTIVE HOSTEL FEEDBACK / POLL CARD FOR VISITING CHIEF WARDEN */}
+                {activeHostel?.id && (
+                  <ActiveFeedbackCard
+                    hostelId={activeHostel.id}
+                    hostelName={activeHostel.name}
+                    currentUser={user}
+                  />
+                )}
+
                 {/* 2. OPERATIONS GRID (Same as Warden UI) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-8">
@@ -1255,6 +1265,15 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* ACTIVE HOSTEL FEEDBACK / POLL CARD */}
+              {(activeHostel?.id || user?.hostelId) && (
+                <ActiveFeedbackCard
+                  hostelId={activeHostel?.id || user?.hostelId || ''}
+                  hostelName={activeHostel?.name || user?.hostelName || 'Hostel'}
+                  currentUser={user}
+                />
+              )}
 
               {isAdmin ? (
                 <div className="space-y-8">
