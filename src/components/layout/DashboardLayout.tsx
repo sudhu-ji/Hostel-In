@@ -1000,8 +1000,7 @@ export function DashboardLayout({ children }: Props) {
 
   const roleNavItems = {
     CHIEF_WARDEN: [
-      { icon: HomeIcon, label: 'Campus Overview', href: '/dashboard' },
-      { icon: UserCircle, label: activeHostelId ? 'Warden Profile' : 'Chief Profile', href: '/dashboard/profile' },
+      { icon: UserCircle, label: isVisitingHostel ? 'Warden Profile' : 'Chief Profile', href: '/dashboard/profile' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
       { icon: Bed, label: 'Rooms', href: '/dashboard/rooms' },
       { icon: UserCheck, label: 'Hostel Working Staff', href: '/dashboard/staff' },
@@ -1011,7 +1010,6 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'About Hostel', href: '/dashboard/hostel' },
     ],
     WARDEN: [
-      { icon: HomeIcon, label: 'Home', href: '/dashboard' },
       { icon: UserCircle, label: 'My Profile', href: '/dashboard/profile' },
       { icon: ShieldCheck, label: 'Hostel Status', href: '/dashboard/status' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
@@ -1022,7 +1020,6 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'About Hostel', href: '/dashboard/hostel' },
     ],
     STUDENT: [
-      { icon: HomeIcon, label: 'Home', href: '/dashboard' },
       { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
       { icon: Bed, label: 'Rooms', href: '/dashboard/rooms' },
@@ -1030,7 +1027,6 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ],
     MONITOR: [
-      { icon: HomeIcon, label: 'Home', href: '/dashboard' },
       { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
       { icon: Users, label: 'Students', href: '/dashboard/students' },
       { icon: UserCheck, label: 'Hostel Working Staff', href: '/dashboard/staff' },
@@ -1040,7 +1036,6 @@ export function DashboardLayout({ children }: Props) {
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ],
     STAFF: [
-      { icon: HomeIcon, label: 'Home', href: '/dashboard' },
       { icon: Utensils, label: 'Mess Updates', href: '/dashboard/mess' },
       { icon: Info, label: 'Hostel Info', href: '/dashboard/hostel' },
     ]
@@ -1058,7 +1053,11 @@ export function DashboardLayout({ children }: Props) {
       <div className={cn("flex min-h-screen bg-background w-full", themeClass)}>
         {!isChiefWardenHome && (
         <Sidebar className="border-r border-primary/20 shadow-2xl bg-gradient-to-b from-primary/12 via-card to-primary/[0.06] backdrop-blur-md">
-          <SidebarHeader className="p-5 border-b border-primary/15 bg-gradient-to-b from-primary/15 via-primary/8 to-transparent">
+          <SidebarHeader 
+            className="p-5 border-b border-primary/15 bg-gradient-to-b from-primary/15 via-primary/8 to-transparent cursor-pointer hover:bg-primary/5 transition-colors select-none"
+            onClick={() => handleNavigation('/dashboard')}
+            title="Go to Home"
+          >
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-2xl overflow-hidden shadow-md shrink-0 border-2 border-primary/30 bg-card p-0.5">
                 <img src="/icon.png" alt="Hostel In" className="h-full w-full object-cover rounded-xl" />
