@@ -18,6 +18,14 @@ import {
   Crosshair
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { useAuth } from '@/lib/auth-store';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, arrayUnion, serverTimestamp, query, collection, where, getDocs, addDoc, updateDoc } from 'firebase/firestore';
@@ -25,7 +33,7 @@ import { doc, setDoc, arrayUnion, serverTimestamp, query, collection, where, get
 // Default fallback coordinates for campus
 const DEFAULT_HOSTEL_LAT = 26.874887;
 const DEFAULT_HOSTEL_LNG = 80.997255;
-const DEFAULT_RADIUS_METERS = 500; 
+const DEFAULT_RADIUS_METERS = 200; // Strictly 200 meters perimeter 
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3; // metres
@@ -68,26 +76,50 @@ export function AttendanceMarker() {
   const statusDocRef = useMemoFirebase(() => db ? doc(db, 'system', 'hostelStatus') : null, [db]);
   const { data: hostelStatus } = useDoc<any>(statusDocRef);
 
-  // Retrieve active hostel center coordinates dynamically
-  const getHostelGeofence = useCallback(() => {
+  const [isCalibrateDialogOpen, setIsCalibrateDialogOpen] = useState(false);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+
+  // Active or upcoming window for calibration: 'morning' (7-10 AM) or 'evening' (9-12 PM)
+  const currentWindowKey = session || (new Date().getHours() < 12 ? 'morning' : 'evening');
+
+  // Retrieve active hostel center coordinates dynamically for the specific window
+  const getHostelGeofence = useCallback((windowKey?: string | null) => {
+    const wKey = windowKey || session || (new Date().getHours() < 12 ? 'morning' : 'evening');
     if (typeof window !== 'undefined') {
       try {
+        // Check window-specific geofence first
+        const savedWindow = localStorage.getItem(`hostelin_geofence_${targetHostelId}_${wKey}`);
+        if (savedWindow) {
+          const parsed = JSON.parse(savedWindow);
+          if (parsed.lat && parsed.lng) return { lat: parsed.lat, lng: parsed.lng, radius: 200 };
+        }
+        // Fallback to hostel general geofence
         const saved = localStorage.getItem(`hostelin_geofence_${targetHostelId}`);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.lat && parsed.lng) return { lat: parsed.lat, lng: parsed.lng, radius: parsed.radius || DEFAULT_RADIUS_METERS };
+          if (parsed.lat && parsed.lng) return { lat: parsed.lat, lng: parsed.lng, radius: 200 };
         }
       } catch (e) {}
     }
+
+    const windowGeo = (activeHostel as any)?.[`geofence_${wKey}`];
+    if (windowGeo?.latitude && windowGeo?.longitude) {
+      return {
+        lat: windowGeo.latitude,
+        lng: windowGeo.longitude,
+        radius: 200
+      };
+    }
+
     if ((activeHostel as any)?.latitude && (activeHostel as any)?.longitude) {
       return { 
         lat: (activeHostel as any).latitude, 
         lng: (activeHostel as any).longitude, 
-        radius: (activeHostel as any).geofenceRadius || DEFAULT_RADIUS_METERS 
+        radius: 200 
       };
     }
-    return { lat: DEFAULT_HOSTEL_LAT, lng: DEFAULT_HOSTEL_LNG, radius: DEFAULT_RADIUS_METERS };
-  }, [targetHostelId, activeHostel]);
+    return { lat: DEFAULT_HOSTEL_LAT, lng: DEFAULT_HOSTEL_LNG, radius: 200 };
+  }, [targetHostelId, activeHostel, session]);
 
   const isClosedToday = React.useMemo(() => {
     if (!hostelStatus || !hostelStatus.isClosed || !hostelStatus.startDate || !hostelStatus.reopenDate) return false;
@@ -114,7 +146,8 @@ export function AttendanceMarker() {
 
           const dist = calculateDistance(userLat, userLng, geofence.lat, geofence.lng);
           setDistance(dist);
-          const within = dist <= geofence.radius;
+          // Strictly enforce 200 meters perimeter
+          const within = dist <= 200;
           setIsNearHostel(within);
         },
         (err) => {
@@ -132,19 +165,24 @@ export function AttendanceMarker() {
     }
   }, [getHostelGeofence]);
 
-  // Calibrate Geofence to Current GPS Location (Restricted to Monitor and Warden only when GPS failed)
-  const handleCalibrateLocation = async () => {
+  // Open confirmation modal for Calibrate Location
+  const handleOpenCalibrateDialog = () => {
     if (!isMonitor) {
-      toast({ title: "Permission Denied", description: "Only hostel monitors can calibrate geofence.", variant: "destructive" });
+      toast({ title: "Permission Denied", description: "Only hostel monitors can calibrate the geofence.", variant: "destructive" });
       return;
     }
+    setIsCalibrateDialogOpen(true);
+  };
 
+  // Perform confirmed GPS calibration for this hostel and marking window
+  const handleConfirmCalibrateLocation = async () => {
     if (!navigator.geolocation) {
-      toast({ title: "GPS Unavailable", description: "Geolocation is not supported by your browser.", variant: "destructive" });
+      toast({ title: "GPS Unavailable", description: "Geolocation is not supported by your device.", variant: "destructive" });
+      setIsCalibrateDialogOpen(false);
       return;
     }
 
-    toast({ title: "Calibrating Geofence...", description: "Acquiring precise GPS coordinates." });
+    setIsCalibrating(true);
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -152,17 +190,28 @@ export function AttendanceMarker() {
         const userLng = pos.coords.longitude;
         setCurrentCoords({ lat: userLat, lng: userLng });
 
-        const geofenceData = { lat: userLat, lng: userLng, radius: DEFAULT_RADIUS_METERS };
+        const targetWin = currentWindowKey;
+        const geofenceData = { lat: userLat, lng: userLng, radius: 200, window: targetWin, calibratedAt: new Date().toISOString() };
+
         if (typeof window !== 'undefined') {
+          // Save for specific window as well as default for hostel
+          localStorage.setItem(`hostelin_geofence_${targetHostelId}_${targetWin}`, JSON.stringify(geofenceData));
           localStorage.setItem(`hostelin_geofence_${targetHostelId}`, JSON.stringify(geofenceData));
         }
 
         if (db && targetHostelId && targetHostelId !== 'default-hostel') {
           try {
             await updateDoc(doc(db, 'hostels', targetHostelId), {
+              [`geofence_${targetWin}`]: {
+                latitude: userLat,
+                longitude: userLng,
+                radius: 200,
+                calibratedAt: new Date().toISOString(),
+                calibratedBy: user?.name || 'Hostel Monitor'
+              },
               latitude: userLat,
               longitude: userLng,
-              geofenceRadius: DEFAULT_RADIUS_METERS
+              geofenceRadius: 200
             });
           } catch (e) {
             console.warn("Firestore hostel coordinates update deferred:", e);
@@ -171,15 +220,23 @@ export function AttendanceMarker() {
 
         setDistance(0);
         setIsNearHostel(true);
+        setIsCalibrating(false);
+        setIsCalibrateDialogOpen(false);
+
         toast({
           title: "Geofence Calibrated",
-          description: `${currentHostelName} geofence center is now set to your current GPS location.`
+          description: `${currentHostelName} check-in center is now locked to your location for the ${targetWin.toUpperCase()} window (200m radius).`
         });
       },
       (err) => {
-        toast({ title: "Calibration Failed", description: "Could not retrieve GPS coordinates. Please grant location permissions.", variant: "destructive" });
+        setIsCalibrating(false);
+        toast({ 
+          title: "Calibration Failed", 
+          description: "Could not retrieve GPS coordinates. Please grant location permissions.", 
+          variant: "destructive" 
+        });
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -386,9 +443,9 @@ export function AttendanceMarker() {
                   <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase gap-1 text-primary" onClick={checkLocation}>
                     <RefreshCw size={10} className={isNearHostel === 'checking' ? 'animate-spin' : ''} /> Refresh GPS
                   </Button>
-                  {isMonitor && isGpsFailed && (
-                    <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase gap-1 text-primary hover:text-primary/90" onClick={handleCalibrateLocation}>
-                      <Crosshair size={10} /> Calibrate to Here
+                  {isMonitor && (
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-bold uppercase gap-1 text-primary hover:text-primary/90" onClick={handleOpenCalibrateDialog}>
+                      <Crosshair size={10} /> Calibrate Location Here
                     </Button>
                   )}
                 </div>
@@ -399,12 +456,24 @@ export function AttendanceMarker() {
           <div className="space-y-3">
             {!marked && (
               <Button 
-                className="w-full h-14 text-lg font-bold shadow-xl hover:scale-[1.01] transition-all bg-accent hover:bg-accent/90 text-white" 
+                className={`w-full h-14 text-lg font-bold shadow-xl transition-all ${
+                  isWithinTime && isNearHostel === true && !markingInProgress
+                    ? 'bg-accent hover:bg-accent/90 text-white cursor-pointer hover:scale-[1.01]'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+                }`}
                 disabled={!isWithinTime || isNearHostel !== true || markingInProgress}
                 onClick={handleMarkAttendance}
               >
-                {markingInProgress ? <Loader2 className="animate-spin mr-2" /> : <CalendarCheck className="mr-2" />}
-                {isWithinTime ? 'Submit Attendance' : 'Waiting for Next Window'}
+                {markingInProgress ? (
+                  <Loader2 className="animate-spin mr-2" />
+                ) : (
+                  <CalendarCheck className="mr-2" />
+                )}
+                {!isWithinTime 
+                  ? 'Waiting for Window (7-10 AM / 9-12 PM)' 
+                  : isNearHostel !== true 
+                    ? 'Outside Hostel Perimeter (>200m)' 
+                    : 'Submit Attendance'}
               </Button>
             )}
 
@@ -423,7 +492,7 @@ export function AttendanceMarker() {
                     <Button 
                       variant="outline"
                       className="w-full h-12 border-primary/40 text-primary hover:bg-primary/5 font-bold shadow-sm text-xs"
-                      onClick={handleCalibrateLocation}
+                      onClick={handleOpenCalibrateDialog}
                       disabled={markingInProgress}
                     >
                       <Crosshair className="mr-2 h-4 w-4" /> Calibrate Geofence to Here
@@ -459,6 +528,60 @@ export function AttendanceMarker() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog for Calibrate Location */}
+      <Dialog open={isCalibrateDialogOpen} onOpenChange={setIsCalibrateDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border border-primary/20 shadow-2xl rounded-2xl">
+          <DialogHeader className="text-left space-y-2">
+            <div className="flex items-center gap-2 text-primary font-bold">
+              <Crosshair className="h-5 w-5" />
+              <DialogTitle className="text-lg">Confirm Hostel Location Calibration</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
+              Please confirm you are physically at the hostel right now.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Target Hostel:</span>
+              <span className="font-bold text-foreground">{currentHostelName}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Marking Window:</span>
+              <span className="font-bold text-primary uppercase">{currentWindowKey} (7-10 AM / 9-12 PM)</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-medium">Verified Range:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">Within 200 meters</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground pt-1 border-t border-primary/10">
+              Your precise GPS position will be set as the official location for this hostel and window. All residents must be within 200m of this point to mark presence.
+            </p>
+          </div>
+
+          <DialogFooter className="flex gap-2 sm:gap-0 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCalibrateDialogOpen(false)}
+              disabled={isCalibrating}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmCalibrateLocation}
+              disabled={isCalibrating}
+              className="w-full sm:w-auto bg-primary text-white font-bold gap-2"
+            >
+              {isCalibrating ? <Loader2 className="animate-spin h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+              Confirm I am at the Hostel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -308,7 +308,12 @@ export default function ChatPage() {
     );
   }
 
-  const students = allottedUsers.filter(u => u.role === 'STUDENT');
+  const currentHostelId = activeHostel?.id || user?.hostelId;
+  const currentHostelNameLower = (activeHostel?.name || user?.hostelName || '').toLowerCase();
+  const students = allottedUsers.filter(u => 
+    u.role === 'STUDENT' &&
+    (!currentHostelId || u.hostelId === currentHostelId || (u.hostelName && u.hostelName.toLowerCase() === currentHostelNameLower))
+  ).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   return (
     <DashboardLayout>

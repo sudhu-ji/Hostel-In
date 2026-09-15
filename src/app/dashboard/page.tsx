@@ -1352,31 +1352,29 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-8">
-                      {user?.role === 'MONITOR' && (
-                        <div className="space-y-8">
-                          <AnnouncementPoster />
-                        </div>
-                      )}
-                      
-                      <Card className="shadow-lg border-none h-fit bg-card overflow-hidden">
-                        <CardHeader className="bg-primary/5">
-                          <div className="flex items-center gap-2">
-                            <Megaphone size={20} className="text-primary" />
-                            <CardTitle className="text-lg">Latest Announcement</CardTitle>
-                          </div>
-                          <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Official Broadcast</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6">
-                          {latestAnnouncement ? (
-                            <div className="p-5 rounded-xl bg-muted/30 border-l-4 border-l-primary shadow-sm">
-                              <h4 className="font-bold text-foreground mb-1">{latestAnnouncement.title}</h4>
-                              <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{latestAnnouncement.message}</p>
+                      {user?.role === 'MONITOR' ? (
+                        <AnnouncementPoster />
+                      ) : (
+                        <Card className="shadow-lg border-none h-fit bg-card overflow-hidden">
+                          <CardHeader className="bg-primary/5">
+                            <div className="flex items-center gap-2">
+                              <Megaphone size={20} className="text-primary" />
+                              <CardTitle className="text-lg">Latest Announcement</CardTitle>
                             </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground italic">No active announcements for today.</p>
-                          )}
-                        </CardContent>
-                      </Card>
+                            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Official Broadcast</CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-6">
+                            {latestAnnouncement ? (
+                              <div className="p-5 rounded-xl bg-muted/30 border-l-4 border-l-primary shadow-sm">
+                                <h4 className="font-bold text-foreground mb-1">{latestAnnouncement.title}</h4>
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{latestAnnouncement.message}</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">No active announcements for today.</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   </div>
                 </div>
