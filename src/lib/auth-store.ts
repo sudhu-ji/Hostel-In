@@ -488,6 +488,9 @@ export function useAuth() {
     if (typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true') {
       return DEMO_HOSTEL;
     }
+    if (user?.role === 'CHIEF_WARDEN' && !activeHostelId) {
+      return null;
+    }
     return hostels[0] || null;
   }, [hostels, activeHostelId, user]);
 

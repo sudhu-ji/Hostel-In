@@ -72,47 +72,74 @@ export function DashboardLayout({ children }: Props) {
   };
 
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
-  const currentHostel = activeHostel || hostels[0] || null;
+  const isVisitingHostel = isChiefWarden && !!activeHostelId;
+  const isChiefWardenCentral = isChiefWarden && !activeHostelId;
+
+  // Resolve current hostel context:
+  // - If Chief Warden is visiting a specific hostel, resolve that active hostel.
+  // - If Chief Warden is on Central Home overview, there is NO active hostel (null).
+  // - For Warden / Student / Monitor / Staff, resolve activeHostel or fallback to hostels[0].
+  const currentHostel = isChiefWarden
+    ? (isVisitingHostel ? (activeHostel || hostels.find(h => h.id === activeHostelId) || null) : null)
+    : (activeHostel || hostels[0] || null);
+
   const [overrideTheme, setOverrideTheme] = useState<string | null>(null);
 
-  // Read direct local theme override if present
+  // Read direct local theme override for the active hostel
   useEffect(() => {
     if (typeof window !== 'undefined' && currentHostel?.id) {
       const directTheme = localStorage.getItem(`hostel_theme_${currentHostel.id}`);
-      if (directTheme) setOverrideTheme(directTheme);
+      if (directTheme && directTheme !== 'rose' && directTheme !== 'pink') {
+        setOverrideTheme(directTheme);
+      } else if (currentHostel?.themeColor) {
+        setOverrideTheme(currentHostel.themeColor);
+      }
+    } else if (isChiefWardenCentral) {
+      // Chief Warden Central Home UI uses its own stable executive theme
+      setOverrideTheme(null);
     }
+  }, [currentHostel?.id, isChiefWardenCentral, currentHostel?.themeColor]);
+
+  useEffect(() => {
     const handleThemeChange = (e: any) => {
       const newColor = e?.detail?.themeColor || e?.detail;
+      const targetHostelId = e?.detail?.hostelId;
+
+      // CRITICAL: When Chief Warden is on Central Home UI, individual hostel theme edits
+      // MUST NEVER change the Chief Warden Central Home UI theme!
+      if (isChiefWarden && !activeHostelId) {
+        return;
+      }
+
+      // If a specific hostelId was targeted in the event, only apply if we are currently viewing that hostel
+      if (targetHostelId && currentHostel?.id && targetHostelId !== currentHostel.id) {
+        return;
+      }
+
       if (newColor && typeof newColor === 'string') {
-        setOverrideTheme(newColor);
+        const safe = (newColor === 'rose' || newColor === 'pink') ? 'purple' : newColor;
+        setOverrideTheme(safe);
         if (typeof document !== 'undefined') {
           const root = document.documentElement;
           Array.from(root.classList).filter(c => c.startsWith('theme-')).forEach(c => root.classList.remove(c));
-          root.classList.add(`theme-${newColor}`);
+          root.classList.add(`theme-${safe}`);
         }
       }
     };
     window.addEventListener('hostelin_theme_changed', handleThemeChange);
     return () => window.removeEventListener('hostelin_theme_changed', handleThemeChange);
-  }, [currentHostel?.id]);
+  }, [isChiefWarden, activeHostelId, currentHostel?.id]);
 
-  // Prioritize active hostel theme from store or reactive override
-  const rawTheme = overrideTheme || currentHostel?.themeColor || 'emerald';
+  // Theme Resolution:
+  // - Chief Warden Central Home UI ALWAYS maintains the fixed Central Executive Theme ('blue').
+  // - When Chief Warden enters a hostel, or for other roles (Warden/Student/Monitor), use that hostel's theme.
+  const rawTheme = isChiefWardenCentral 
+    ? 'blue' 
+    : (overrideTheme || currentHostel?.themeColor || 'emerald');
+
   // Strictly prevent red or pink theme from ever displaying
   const safeTheme = (rawTheme === 'rose' || rawTheme === 'pink') ? 'purple' : rawTheme;
   const themeClass = `theme-${safeTheme}`;
-
-  // Reset override whenever active hostel switches
-  useEffect(() => {
-    if (currentHostel?.id && typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`hostel_theme_${currentHostel.id}`);
-      if (stored && stored !== 'rose' && stored !== 'pink') {
-        setOverrideTheme(stored);
-      } else if (currentHostel.themeColor) {
-        setOverrideTheme(currentHostel.themeColor);
-      }
-    }
-  }, [currentHostel?.id, currentHostel?.themeColor]);
 
   // Apply dynamic hostel theme class to documentElement so all portals, dialogs, and components adopt it
   useEffect(() => {
@@ -1020,7 +1047,6 @@ export function DashboardLayout({ children }: Props) {
   };
 
   const cleanPath = (pathname || '').replace(/\/+$/, '') || '/';
-  const isVisitingHostel = isChiefWarden && !!activeHostelId;
   // Chief Warden Home UI has no sidebar ONLY when on central overview (no specific hostel active)
   const isChiefWardenHome = isChiefWarden && !activeHostelId && cleanPath === '/dashboard';
   const navItems = isVisitingHostel 
