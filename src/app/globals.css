@@ -4,43 +4,43 @@
 
 @layer base {
   :root {
-    /* Warm Ivory / Yellowish-Tinted Light Theme */
-    --background: 43 36% 96%;           /* #FAF7F0 - Luxurious Warm Cream */
-    --foreground: 24 25% 15%;           /* #26211D - Deep Espresso Charcoal */
-    --card: 40 40% 99%;                 /* #FFFDF9 - Warm Crisp Surface */
-    --card-foreground: 24 25% 15%;
-    --popover: 40 40% 99%;
-    --popover-foreground: 24 25% 15%;
+    /* Soothing Warm Ivory & Almond Parchment (Gentle on the eyes, removes harsh light glare) */
+    --background: 38 32% 91%;           /* #F3EEE5 - Soft Warm Parchment Canvas */
+    --foreground: 24 28% 14%;           /* #271E18 - Deep Espresso Warm Charcoal */
+    --card: 38 30% 95%;                 /* #FAF6EF - Gentle Silk Cream Surface */
+    --card-foreground: 24 28% 14%;
+    --popover: 38 30% 95%;
+    --popover-foreground: 24 28% 14%;
     
-    --primary: 221 83% 53%;             /* Vibrant Executive Royal Blue */
+    --primary: 221 83% 48%;             /* Deep Executive Royal Blue */
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 40 28% 92%;            /* #F4EFE6 - Warm Soft Linen */
-    --secondary-foreground: 24 25% 15%;
+    --secondary: 36 26% 86%;            /* Warm Sand Linen */
+    --secondary-foreground: 24 28% 14%;
     
-    --muted: 40 28% 92%;
-    --muted-foreground: 28 16% 45%;     /* #787064 - Warm Slate Neutral */
+    --muted: 36 24% 87%;
+    --muted-foreground: 28 18% 38%;     /* Warm Slate Editorial */
     
-    --accent: 38 92% 50%;               /* Warm Golden Amber Accent */
+    --accent: 38 92% 48%;               /* Warm Golden Amber Accent */
     --accent-foreground: 0 0% 100%;
     
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 58%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 40 22% 87%;               /* #E5DFD1 - Warm Sand Border */
-    --input: 40 22% 87%;
-    --ring: 221 83% 53%;
+    --border: 36 22% 79%;               /* Warm Sand Contour Border */
+    --input: 36 22% 82%;
+    --ring: 221 83% 48%;
     --radius: 1rem;
     
-    /* Clean, Warm Light Sidebar */
-    --sidebar-background: 40 35% 97%;   /* #FAF8F2 */
-    --sidebar-foreground: 24 25% 15%;
-    --sidebar-primary: 221 83% 53%;
+    /* Cozy Warm Light Sidebar */
+    --sidebar-background: 38 28% 92%;   /* #F4EFE6 - Warm Sand Sidebar */
+    --sidebar-foreground: 24 28% 14%;
+    --sidebar-primary: 221 83% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 25% 91%;       /* #F2EDE2 */
-    --sidebar-accent-foreground: 24 25% 15%;
-    --sidebar-border: 40 20% 88%;       /* #E8E2D4 */
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-accent: 36 26% 85%;       /* #EFE8DC */
+    --sidebar-accent-foreground: 24 28% 14%;
+    --sidebar-border: 36 20% 80%;       /* #D9D1C3 */
+    --sidebar-ring: 221 83% 48%;
   }
 
 
