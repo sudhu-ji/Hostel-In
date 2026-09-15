@@ -19,6 +19,7 @@ export interface Hostel {
   wardenAvatarUrl?: string;
   isRemoved?: boolean;
   themeColor: 'blue' | 'emerald' | 'purple' | 'rose' | 'amber' | 'cyan' | 'indigo' | 'orange' | 'teal' | 'pink' | 'violet' | 'slate';
+  themeMode?: 'light' | 'dark';
   institutionName?: string;
   totalRooms?: number;
   description?: string;
@@ -84,6 +85,7 @@ export const DEMO_HOSTEL: Hostel = {
   wardenName: 'Dr. Demo Warden',
   wardenMobile: '9876543210',
   themeColor: 'blue',
+  themeMode: 'dark',
   totalRooms: 60,
   description: 'Full demonstration hostel illustrating students, mess, complaints, and permissions workflows.',
   createdAt: new Date().toISOString()
@@ -471,18 +473,25 @@ export function useAuth() {
     };
   }, [db, isAuthReady]);
 
-  // Active Hostel computation
+  // Active Hostel computation - strictly scoped to prevent cross-hostel or cross-role mix up
   const activeHostel = useMemo(() => {
+    // 1. If user is WARDEN: strictly bind to their assigned hostel
+    if (user?.role === 'WARDEN') {
+      const found = hostels.find(h => (user.hostelId && h.id === user.hostelId) || (user.mobile && h.wardenMobile === user.mobile));
+      if (found) return found;
+    }
+    // 2. If user is STUDENT, MONITOR, or STAFF: strictly bind to their assigned hostel
+    if (user?.role === 'STUDENT' || user?.role === 'MONITOR' || user?.role === 'STAFF') {
+      const found = hostels.find(h => (user.hostelId && h.id === user.hostelId) || (user.hostelName && h.name === user.hostelName));
+      if (found) return found;
+    }
+    // 3. If Chief Warden is visiting a specific hostel:
     if (activeHostelId) {
       const found = hostels.find(h => h.id === activeHostelId);
       if (found) return found;
     }
     if (user?.hostelId) {
       const found = hostels.find(h => h.id === user.hostelId);
-      if (found) return found;
-    }
-    if (user?.role === 'WARDEN') {
-      const found = hostels.find(h => h.wardenMobile === user.mobile);
       if (found) return found;
     }
     if (typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') === 'true') {
@@ -554,12 +563,14 @@ export function useAuth() {
         if (chief.password === password) {
           localStorage.setItem('hostelin_auth', JSON.stringify(chief));
           setUser(chief);
+          setActiveHostelId(null);
           return { success: true, user: chief, role: 'CHIEF_WARDEN', isBootstrap: !chief.profileCompleted };
         }
         return { success: false };
       } else {
         localStorage.setItem('hostelin_auth', JSON.stringify(chief));
         setUser(chief);
+        setActiveHostelId(null);
         return { success: true, user: chief, role: 'CHIEF_WARDEN', isBootstrap: true };
       }
     }
@@ -755,7 +766,16 @@ export function useAuth() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(`hostel_theme_${hostel.id}`, hostel.themeColor);
-        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: hostel.id, themeColor: hostel.themeColor } }));
+        if (hostel.themeMode) {
+          localStorage.setItem(`hostel_mode_${hostel.id}`, hostel.themeMode);
+        }
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { 
+          detail: { 
+            hostelId: hostel.id, 
+            themeColor: hostel.themeColor,
+            themeMode: hostel.themeMode 
+          } 
+        }));
       } catch (e) {}
     }
 

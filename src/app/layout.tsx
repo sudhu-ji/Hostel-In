@@ -26,8 +26,25 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var savedMode = localStorage.getItem('hostelin_theme_mode');
-                if (savedMode === 'dark') {
+                var userAuth = localStorage.getItem('hostelin_auth');
+                var activeHostelId = localStorage.getItem('hostelin_active_hostel_id');
+                var mode = 'dark';
+                if (userAuth) {
+                  var user = JSON.parse(userAuth);
+                  if (user.role === 'CHIEF_WARDEN' && !activeHostelId) {
+                    mode = localStorage.getItem('hostelin_chief_mode') || 'dark';
+                  } else {
+                    var targetHostelId = activeHostelId || user.hostelId;
+                    if (targetHostelId) {
+                      mode = localStorage.getItem('hostel_mode_' + targetHostelId) || 'dark';
+                    } else {
+                      mode = localStorage.getItem('hostelin_theme_mode') || 'dark';
+                    }
+                  }
+                } else {
+                  mode = localStorage.getItem('hostelin_theme_mode') || 'dark';
+                }
+                if (mode === 'dark') {
                   document.documentElement.classList.add('dark');
                 } else {
                   document.documentElement.classList.remove('dark');

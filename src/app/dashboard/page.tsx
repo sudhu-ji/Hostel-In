@@ -295,6 +295,7 @@ export default function DashboardPage() {
   const [wardenAbout, setWardenAbout] = useState('');
   const [hostelDescription, setHostelDescription] = useState('');
   const [themeColor, setThemeColor] = useState<Hostel['themeColor']>('blue');
+  const [hostelThemeMode, setHostelThemeMode] = useState<'light' | 'dark'>('dark');
   const [isSubmittingHostel, setIsSubmittingHostel] = useState(false);
 
   // Soft remove hostel from this app only
@@ -548,6 +549,7 @@ export default function DashboardPage() {
     setWardenName('');
     setWardenMobile('');
     setThemeColor('blue');
+    setHostelThemeMode('dark');
     setIsHostelModalOpen(true);
   };
 
@@ -564,6 +566,7 @@ export default function DashboardPage() {
     setWardenAbout(h.wardenAbout || '');
     setHostelDescription(h.description || '');
     setThemeColor(h.themeColor);
+    setHostelThemeMode(h.themeMode || 'dark');
     setIsHostelModalOpen(true);
   };
 
@@ -590,12 +593,14 @@ export default function DashboardPage() {
           wardenAbout: wardenAbout.trim() || undefined,
           description: hostelDescription.trim() || editingHostel.description,
           themeColor: themeColor,
+          themeMode: hostelThemeMode,
           institutionName: user?.institutionName || editingHostel.institutionName
         };
         await updateHostel(updatedH);
         if (typeof window !== 'undefined') {
           localStorage.setItem(`hostel_theme_${editingHostel.id}`, themeColor);
-          window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: editingHostel.id, themeColor } }));
+          localStorage.setItem(`hostel_mode_${editingHostel.id}`, hostelThemeMode);
+          window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: editingHostel.id, themeColor, themeMode: hostelThemeMode } }));
         }
         toast({ title: "Hostel Updated", description: `${hostelName} updated successfully.` });
       } else {
@@ -607,6 +612,7 @@ export default function DashboardPage() {
           wardenGender: wardenGender,
           wardenAbout: wardenAbout.trim() || undefined,
           themeColor: themeColor,
+          themeMode: hostelThemeMode,
           institutionName: user?.institutionName || 'Campus Institution',
           totalRooms: 50,
           description: hostelDescription.trim() || `${hostelType} residential complex overseen by ${fullWardenName}.`
@@ -889,13 +895,14 @@ export default function DashboardPage() {
                             size="icon"
                             onClick={() => {
                               const isDark = document.documentElement.classList.contains('dark');
-                              if (isDark) {
-                                document.documentElement.classList.remove('dark');
-                                localStorage.setItem('hostelin_theme_mode', 'light');
-                              } else {
+                              const nextMode = isDark ? 'light' : 'dark';
+                              if (nextMode === 'dark') {
                                 document.documentElement.classList.add('dark');
-                                localStorage.setItem('hostelin_theme_mode', 'dark');
+                              } else {
+                                document.documentElement.classList.remove('dark');
                               }
+                              localStorage.setItem('hostelin_chief_mode', nextMode);
+                              window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { themeMode: nextMode } }));
                             }}
                             className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-primary/20 hover:bg-primary/10 text-primary shadow-sm shrink-0"
                             title="Toggle Dark / Light Mode"
@@ -1617,6 +1624,39 @@ export default function DashboardPage() {
                   placeholder="e.g. Premier campus residence with dining facilities, study area, and sports lounge."
                   className="min-h-[70px] bg-muted/20 text-xs resize-none"
                 />
+              </div>
+
+              {/* Hostel Theme Appearance Mode (Light / Dark) */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hostel Default Mode</Label>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setHostelThemeMode('light')}
+                    className={cn(
+                      "flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all shadow-sm",
+                      hostelThemeMode === 'light'
+                        ? "bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/40"
+                        : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Sun className="h-4 w-4 text-amber-500" />
+                    <span>Warm Light Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHostelThemeMode('dark')}
+                    className={cn(
+                      "flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all shadow-sm",
+                      hostelThemeMode === 'dark'
+                        ? "bg-primary/15 border-primary text-primary ring-2 ring-primary/40"
+                        : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Moon className="h-4 w-4 text-primary" />
+                    <span>Sleek Dark Mode</span>
+                  </button>
+                </div>
               </div>
 
               {/* Color Theme Selector */}

@@ -30,7 +30,7 @@ interface Props {
 let hasHydrated = false;
 
 export function DashboardLayout({ children }: Props) {
-  const { user, logout, loading: appLoading, hostels, activeHostel, activeHostelId, setActiveHostelId, exitDemoSession, allottedUsers } = useAuth();
+  const { user, logout, loading: appLoading, hostels, activeHostel, activeHostelId, setActiveHostelId, exitDemoSession, allottedUsers, updateHostel } = useAuth();
   const { user: firebaseUser, isUserLoading: firebaseLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -42,35 +42,6 @@ export function DashboardLayout({ children }: Props) {
   // Manual Dark / Light Mode state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const saved = localStorage.getItem('hostelin_theme_mode');
-      if (saved === 'dark') {
-        document.documentElement.classList.add('dark');
-        setIsDarkMode(true);
-      } else {
-        document.documentElement.classList.remove('dark');
-        setIsDarkMode(false);
-      }
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      if (typeof document !== 'undefined') {
-        if (next) {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('hostelin_theme_mode', 'dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('hostelin_theme_mode', 'light');
-        }
-      }
-      return next;
-    });
-  };
-
   const isChiefWarden = user?.role === 'CHIEF_WARDEN';
   const isVisitingHostel = isChiefWarden && !!activeHostelId;
   const isChiefWardenCentral = isChiefWarden && !activeHostelId;
@@ -78,16 +49,29 @@ export function DashboardLayout({ children }: Props) {
   // Resolve current hostel context:
   // - If Chief Warden is visiting a specific hostel, resolve that active hostel.
   // - If Chief Warden is on Central Home overview, there is NO active hostel (null).
-  // - For Warden / Student / Monitor / Staff, resolve activeHostel or fallback to hostels[0].
+  // - For Warden / Student / Monitor / Staff, strictly resolve their own hostel.
   const currentHostel = isChiefWarden
     ? (isVisitingHostel ? (activeHostel || hostels.find(h => h.id === activeHostelId) || null) : null)
-    : (activeHostel || hostels[0] || null);
+    : (activeHostel || (user?.hostelId ? hostels.find(h => h.id === user.hostelId) : null) || (user?.role === 'WARDEN' ? hostels.find(h => h.wardenMobile === user?.mobile) : null) || hostels[0] || null);
 
   const [overrideTheme, setOverrideTheme] = useState<string | null>(null);
 
-  // Read direct local theme override for the active hostel
+  // Sync Mode and Theme Color strictly based on the current hostel or Chief Warden Central
   useEffect(() => {
-    if (typeof window !== 'undefined' && currentHostel?.id) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    if (currentHostel?.id) {
+      // 1. Read hostel-specific mode (Light / Dark)
+      const hostelMode = localStorage.getItem(`hostel_mode_${currentHostel.id}`) || currentHostel.themeMode || 'dark';
+      const shouldBeDark = hostelMode === 'dark';
+      setIsDarkMode(shouldBeDark);
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      // 2. Read hostel-specific color
       const directTheme = localStorage.getItem(`hostel_theme_${currentHostel.id}`);
       if (directTheme && directTheme !== 'rose' && directTheme !== 'pink') {
         setOverrideTheme(directTheme);
@@ -95,19 +79,67 @@ export function DashboardLayout({ children }: Props) {
         setOverrideTheme(currentHostel.themeColor);
       }
     } else if (isChiefWardenCentral) {
-      // Chief Warden Central Home UI uses its own stable executive theme
-      setOverrideTheme(null);
+      // Chief Warden Central Home UI uses its own stable executive theme & mode
+      const chiefMode = localStorage.getItem('hostelin_chief_mode') || 'dark';
+      const shouldBeDark = chiefMode === 'dark';
+      setIsDarkMode(shouldBeDark);
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      setOverrideTheme(null); // Defaults to rawTheme 'blue'
     }
-  }, [currentHostel?.id, isChiefWardenCentral, currentHostel?.themeColor]);
+  }, [currentHostel?.id, currentHostel?.themeColor, currentHostel?.themeMode, isChiefWardenCentral]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const next = !prev;
+      const nextMode = next ? 'dark' : 'light';
+      if (typeof document !== 'undefined') {
+        if (next) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+
+      if (currentHostel?.id) {
+        localStorage.setItem(`hostel_mode_${currentHostel.id}`, nextMode);
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', {
+          detail: { hostelId: currentHostel.id, themeColor: currentHostel.themeColor, themeMode: nextMode }
+        }));
+        if (user?.role === 'WARDEN' || user?.role === 'CHIEF_WARDEN') {
+          updateHostel({ ...currentHostel, themeMode: nextMode }).catch(() => {});
+        }
+      } else if (isChiefWardenCentral) {
+        localStorage.setItem('hostelin_chief_mode', nextMode);
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', {
+          detail: { themeMode: nextMode }
+        }));
+      } else {
+        localStorage.setItem('hostelin_theme_mode', nextMode);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleThemeChange = (e: any) => {
-      const newColor = e?.detail?.themeColor || e?.detail;
+      const newColor = e?.detail?.themeColor || (typeof e?.detail === 'string' ? e.detail : null);
+      const newMode = e?.detail?.themeMode;
       const targetHostelId = e?.detail?.hostelId;
 
       // CRITICAL: When Chief Warden is on Central Home UI, individual hostel theme edits
       // MUST NEVER change the Chief Warden Central Home UI theme!
       if (isChiefWarden && !activeHostelId) {
+        if (newMode && !targetHostelId) {
+          setIsDarkMode(newMode === 'dark');
+          if (typeof document !== 'undefined') {
+            if (newMode === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+          }
+        }
         return;
       }
 
@@ -123,6 +155,15 @@ export function DashboardLayout({ children }: Props) {
           const root = document.documentElement;
           Array.from(root.classList).filter(c => c.startsWith('theme-')).forEach(c => root.classList.remove(c));
           root.classList.add(`theme-${safe}`);
+        }
+      }
+
+      if (newMode === 'dark' || newMode === 'light') {
+        const isDark = newMode === 'dark';
+        setIsDarkMode(isDark);
+        if (typeof document !== 'undefined') {
+          if (isDark) document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
         }
       }
     };

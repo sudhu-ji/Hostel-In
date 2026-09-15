@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit3, Info, MapPin, Shield, Camera, Upload, Phone, MessageCircle, ChevronLeft, ChevronRight, Trash2, Users, UserCheck, Check } from 'lucide-react';
+import { Edit3, Info, MapPin, Shield, Camera, Upload, Phone, MessageCircle, ChevronLeft, ChevronRight, Trash2, Users, UserCheck, Check, Sun, Moon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { VerifiedBadge, UserVerifiedBadge, HostelVerifiedBadge } from "@/components/ui/verified-badge";
@@ -106,6 +106,7 @@ export default function HostelDetailsPage() {
   const [wardenGender, setWardenGender] = useState<'Male' | 'Female'>(activeHostel?.wardenGender || wardenUser?.gender || 'Male');
   const [wardenAbout, setWardenAbout] = useState(activeHostel?.wardenAbout || wardenUser?.description || '');
   const [themeColor, setThemeColor] = useState<string>(activeHostel?.themeColor || 'emerald');
+  const [hostelThemeMode, setHostelThemeMode] = useState<'light' | 'dark'>(activeHostel?.themeMode || 'dark');
 
   useEffect(() => {
     if (activeHostel) {
@@ -114,6 +115,7 @@ export default function HostelDetailsPage() {
       if (activeHostel.wardenGender) setWardenGender(activeHostel.wardenGender);
       if (activeHostel.wardenAbout) setWardenAbout(activeHostel.wardenAbout);
       if (activeHostel.themeColor) setThemeColor(activeHostel.themeColor);
+      if (activeHostel.themeMode) setHostelThemeMode(activeHostel.themeMode);
     }
   }, [activeHostel]);
 
@@ -168,11 +170,19 @@ export default function HostelDetailsPage() {
         description: info,
         wardenGender: wardenGender,
         wardenAbout: wardenAbout,
-        themeColor: themeColor as any
+        themeColor: themeColor as any,
+        themeMode: hostelThemeMode
       });
       if (typeof window !== 'undefined') {
         localStorage.setItem(`hostel_theme_${activeHostel.id}`, themeColor);
-        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { detail: { hostelId: activeHostel.id, themeColor } }));
+        localStorage.setItem(`hostel_mode_${activeHostel.id}`, hostelThemeMode);
+        window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { 
+          detail: { 
+            hostelId: activeHostel.id, 
+            themeColor, 
+            themeMode: hostelThemeMode 
+          } 
+        }));
       }
     }
 
@@ -387,6 +397,40 @@ export default function HostelDetailsPage() {
                       onChange={(e) => setWardenAbout(e.target.value)} 
                       placeholder="e.g. Associate Professor & Resident Warden"
                     />
+                  </div>
+                </div>
+
+                {/* Hostel Theme Appearance Mode (Light / Dark) */}
+                <div className="space-y-2 pt-3 border-t text-left">
+                  <label className="text-xs font-bold uppercase text-muted-foreground block">Hostel Default Mode</label>
+                  <p className="text-[11px] text-muted-foreground">Select whether this hostel defaults to a Warm Light or Sleek Dark experience for all its residents and staff.</p>
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setHostelThemeMode('light')}
+                      className={cn(
+                        "flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all shadow-sm",
+                        hostelThemeMode === 'light'
+                          ? "bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/40"
+                          : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <Sun className="h-4 w-4 text-amber-500" />
+                      <span>Warm Light Mode</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHostelThemeMode('dark')}
+                      className={cn(
+                        "flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all shadow-sm",
+                        hostelThemeMode === 'dark'
+                          ? "bg-primary/15 border-primary text-primary ring-2 ring-primary/40"
+                          : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <Moon className="h-4 w-4 text-primary" />
+                      <span>Sleek Dark Mode</span>
+                    </button>
                   </div>
                 </div>
 
