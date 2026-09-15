@@ -1050,7 +1050,7 @@ export function DashboardLayout({ children }: Props) {
   // Chief Warden Home UI has no sidebar ONLY when on central overview (no specific hostel active)
   const isChiefWardenHome = isChiefWarden && !activeHostelId && cleanPath === '/dashboard';
   const navItems = isVisitingHostel 
-    ? roleNavItems.WARDEN 
+    ? roleNavItems.WARDEN.map(item => item.href === '/dashboard/profile' ? { ...item, label: 'Warden Profile' } : item) 
     : (roleNavItems[user.role as keyof typeof roleNavItems] || []);
 
   return (
