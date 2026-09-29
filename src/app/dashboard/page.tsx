@@ -403,24 +403,37 @@ export default function DashboardPage() {
     return date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  // Chief Warden history & popstate listener for back swipe navigation
+  // Chief Warden history & popstate listener for back swipe and browser navigation
   useEffect(() => {
     if (!isChiefWarden) return;
 
-    // Check URL query param on load
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hostelParam = urlParams.get('hostel');
-      if (hostelParam && hostelParam !== activeHostelId) {
-        setActiveHostelId(hostelParam);
-      } else if (!hostelParam && activeHostelId) {
-        // If query is empty but activeHostelId was stored, sync to root
-        // only if user navigated back to /dashboard
-      }
-    }
+    const syncHostelFromUrl = () => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const hostelParam = params.get('hostel');
 
-    // Clean URL query sync without destroying activeHostelId prematurely
-    return () => {};
+      if (hostelParam) {
+        if (hostelParam !== activeHostelId) {
+          setActiveHostelId(hostelParam);
+        }
+      } else {
+        // When navigating back to /dashboard without ?hostel=...
+        if (activeHostelId) {
+          setActiveHostelId(null);
+          localStorage.removeItem('hostelin_active_hostel_id');
+          window.dispatchEvent(new Event('hostelin_active_hostel_changed'));
+        }
+      }
+    };
+
+    window.addEventListener('popstate', syncHostelFromUrl);
+
+    // Initial check on load
+    syncHostelFromUrl();
+
+    return () => {
+      window.removeEventListener('popstate', syncHostelFromUrl);
+    };
   }, [isChiefWarden, activeHostelId, setActiveHostelId]);
 
   useEffect(() => {
