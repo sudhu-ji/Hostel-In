@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { doc, setDoc, collection, updateDoc, deleteDoc, onSnapshot, getDoc, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, updateDoc, deleteDoc, onSnapshot, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
 
@@ -360,7 +360,7 @@ export function useAuth() {
 
   // Real-time synchronization of hostels and users
   useEffect(() => {
-    if (!db || !isAuthReady) return;
+    if (!db) return;
 
     const seedInitialData = async () => {
       try {
@@ -390,18 +390,9 @@ export function useAuth() {
         .map(d => ({ ...d.data(), id: d.id } as Hostel))
         .filter(h => !deletedHostelIds.includes(h.id));
 
-      setHostels(prev => {
-        const cloudIds = new Set(cloudHostels.map(h => h.id));
-        const pendingLocal = prev.filter(h => !cloudIds.has(h.id) && !deletedHostelIds.includes(h.id));
-        
-        // Auto-sync any local hostels to cloud so they persist permanently
-        if (db && pendingLocal.length > 0 && typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') !== 'true') {
-          pendingLocal.forEach(h => {
-            setDoc(doc(db, 'hostels', h.id), h, { merge: true }).catch(err => console.warn("Auto-sync hostel to cloud deferred:", err));
-          });
-        }
-        return [...cloudHostels, ...pendingLocal];
-      });
+      setHostels(cloudHostels);
+    }, (err) => {
+      console.warn("Hostels snapshot error:", err);
     });
 
     // Listen to Users (Cloud data is single ground truth, respecting deletions & hostel cascade)
@@ -426,44 +417,31 @@ export function useAuth() {
         .map(d => ({ ...d.data(), id: d.id } as User))
         .filter(u => !u.isRemoved && !deletedUserIds.includes(u.id) && !(u.hostelId && deletedHostelIds.includes(u.hostelId)));
 
-      let currentUserToUpdate: User | null = null;
-      let hostelToUpdate: string | null = null;
+      setAllottedUsers(cloudUsers);
 
-      setAllottedUsers(prev => {
-        const cloudIds = new Set(cloudUsers.map(u => u.id));
-        const pendingLocal = prev.filter(u => !cloudIds.has(u.id) && !deletedUserIds.includes(u.id));
-        
-        // Auto-sync any local users to cloud so they persist permanently
-        if (db && pendingLocal.length > 0 && typeof window !== 'undefined' && localStorage.getItem('hostelin_is_demo') !== 'true') {
-          pendingLocal.forEach(u => {
-            setDoc(doc(db, 'users', u.id), u, { merge: true }).catch(err => console.warn("Auto-sync user to cloud deferred:", err));
-          });
-        }
-        return [...cloudUsers, ...pendingLocal];
-      });
+      // Cache chief profile in local storage if present
+      const chiefCloud = cloudUsers.find(u => u.id === 'chief-warden-primary' || u.role === 'CHIEF_WARDEN');
+      if (chiefCloud && typeof window !== 'undefined') {
+        localStorage.setItem('hostelin_chief_profile', JSON.stringify(chiefCloud));
+      }
 
       const storedAuth = typeof window !== 'undefined' ? localStorage.getItem('hostelin_auth') : null;
       if (storedAuth) {
         try {
           const parsed = JSON.parse(storedAuth);
-          const currentUserData = cloudUsers.find(u => u.id === parsed.id || (u.mobile === parsed.mobile));
+          const currentUserData = cloudUsers.find(u => u.id === parsed.id || (u.mobile && u.mobile === parsed.mobile));
           if (currentUserData) {
-            currentUserToUpdate = currentUserData;
-            if (currentUserData.role !== 'CHIEF_WARDEN' && currentUserData.hostelId) {
-              hostelToUpdate = currentUserData.hostelId;
+            setUser(currentUserData);
+            localStorage.setItem('hostelin_auth', JSON.stringify(currentUserData));
+            if (currentUserData.role !== 'CHIEF_WARDEN' && currentUserData.hostelId && !localStorage.getItem('hostelin_active_hostel_id')) {
+              setActiveHostelId(currentUserData.hostelId);
             }
           }
         } catch (e) {}
       }
-
-      if (currentUserToUpdate) {
-        setUser(currentUserToUpdate);
-      }
-      if (hostelToUpdate && typeof window !== 'undefined' && !localStorage.getItem('hostelin_active_hostel_id')) {
-        setActiveHostelId(hostelToUpdate);
-      }
       setLoading(false);
-    }, () => {
+    }, (err) => {
+      console.warn("Users snapshot error:", err);
       setLoading(false);
     });
 
@@ -471,7 +449,7 @@ export function useAuth() {
       unsubHostels();
       unsubUsers();
     };
-  }, [db, isAuthReady]);
+  }, [db]);
 
   // Active Hostel computation - strictly scoped to prevent cross-hostel or cross-role mix up
   const activeHostel = useMemo(() => {
@@ -504,6 +482,7 @@ export function useAuth() {
   }, [hostels, activeHostelId, user]);
 
   const checkMobile = (mobile: string): { exists: boolean; hasPassword: boolean; role?: UserRole; isBootstrapAdmin?: boolean } => {
+    const clean = mobile.trim();
     let savedChief: User | null = null;
     if (typeof window !== 'undefined') {
       try {
@@ -511,7 +490,9 @@ export function useAuth() {
         if (raw) savedChief = JSON.parse(raw);
       } catch (e) {}
     }
-    const foundAdmin = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && u.mobile === mobile) || (mobile === '9999999999' && u.id === 'chief-warden-primary')) || (savedChief && (savedChief.mobile === mobile || mobile === '9999999999') ? savedChief : null) || (mobile === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
+    const foundAdmin = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
+                       (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+                       (clean === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
     if (foundAdmin) {
       const hasPwd = !!(foundAdmin.password && foundAdmin.password.trim().length > 0 && foundAdmin.profileCompleted);
       return {
@@ -522,9 +503,9 @@ export function useAuth() {
       };
     }
 
-    let found = allottedUsers.find(u => u.mobile === mobile);
+    let found = allottedUsers.find(u => u.mobile === clean);
     if (!found) {
-      const hostel = hostels.find(h => h.wardenMobile === mobile);
+      const hostel = hostels.find(h => h.wardenMobile === clean);
       if (hostel) {
         found = {
           id: `warden-${hostel.id}`,
@@ -549,7 +530,138 @@ export function useAuth() {
     };
   };
 
+  const verifyMobile = async (mobileInput: string): Promise<{
+    exists: boolean;
+    hasPassword: boolean;
+    role?: UserRole;
+    isChiefWarden?: boolean;
+    isBootstrap?: boolean;
+  }> => {
+    const clean = mobileInput.trim();
+    if (!clean) return { exists: false, hasPassword: false };
+
+    // 1. Direct Firestore cloud lookup
+    let chiefUser: User | null = null;
+    let regularUser: User | null = null;
+    let wardenHostel: Hostel | null = null;
+
+    if (db) {
+      try {
+        const chiefSnap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
+        if (chiefSnap.exists()) {
+          const cData = { ...chiefSnap.data(), id: chiefSnap.id } as User;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('hostelin_chief_profile', JSON.stringify(cData));
+          }
+          setAllottedUsers(prev => {
+            const idx = prev.findIndex(u => u.id === 'chief-warden-primary');
+            return idx >= 0 ? prev.map(u => u.id === 'chief-warden-primary' ? cData : u) : [cData, ...prev];
+          });
+          if (clean === '9999999999' || clean === cData.mobile) {
+            chiefUser = cData;
+          }
+        }
+      } catch (e) {
+        console.warn("Direct Firestore lookup of chief-warden-primary failed:", e);
+      }
+
+      if (!chiefUser && clean !== '9999999999') {
+        try {
+          const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
+          if (!qSnap.empty) {
+            const uDoc = qSnap.docs[0];
+            const uData = { ...(uDoc.data() as any), id: uDoc.id } as User;
+            if (uData.role === 'CHIEF_WARDEN' || uData.id === 'chief-warden-primary') {
+              chiefUser = uData;
+            } else {
+              regularUser = uData;
+            }
+            setAllottedUsers(prev => [...prev.filter(u => u.id !== uData.id), uData]);
+          }
+        } catch (e) {
+          console.warn("Direct Firestore lookup by user mobile failed:", e);
+        }
+      }
+
+      if (!chiefUser && !regularUser) {
+        try {
+          const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
+          if (!hSnap.empty) {
+            wardenHostel = { ...(hSnap.docs[0].data() as any), id: hSnap.docs[0].id } as Hostel;
+          }
+        } catch (e) {
+          console.warn("Direct Firestore lookup of hostel warden failed:", e);
+        }
+      }
+    }
+
+    // 2. In-memory fallback
+    if (!chiefUser && !regularUser && !wardenHostel) {
+      let savedChief: User | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('hostelin_chief_profile');
+          if (raw) savedChief = JSON.parse(raw);
+        } catch (e) {}
+      }
+      const admin = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
+                   (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+                   (clean === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
+      if (admin) {
+        chiefUser = admin;
+      } else {
+        regularUser = allottedUsers.find(u => u.mobile === clean) || null;
+        if (!regularUser) {
+          wardenHostel = hostels.find(h => h.wardenMobile === clean) || null;
+        }
+      }
+    }
+
+    // 3. Chief Warden evaluation
+    if (chiefUser || clean === '9999999999') {
+      const target = chiefUser || DEFAULT_CHIEF_WARDEN;
+      const hasPwd = !!(target.password && target.password.trim().length > 0 && target.profileCompleted);
+      return {
+        exists: true,
+        hasPassword: hasPwd,
+        role: 'CHIEF_WARDEN',
+        isChiefWarden: true,
+        isBootstrap: !hasPwd
+      };
+    }
+
+    // 4. Regular user evaluation
+    if (regularUser) {
+      return {
+        exists: true,
+        hasPassword: !!(regularUser.password && regularUser.password.trim().length > 0),
+        role: regularUser.role,
+        isChiefWarden: false,
+        isBootstrap: false
+      };
+    }
+
+    // 5. Hostel Warden evaluation
+    if (wardenHostel) {
+      return {
+        exists: true,
+        hasPassword: false,
+        role: 'WARDEN',
+        isChiefWarden: false,
+        isBootstrap: false
+      };
+    }
+
+    return {
+      exists: false,
+      hasPassword: false
+    };
+  };
+
   const login = async (mobile: string, password?: string): Promise<{ success: boolean; user?: User; role?: UserRole; isBootstrap?: boolean }> => {
+    const clean = mobile.trim();
+    let targetUser: User | null = null;
+
     let savedChief: User | null = null;
     if (typeof window !== 'undefined') {
       try {
@@ -557,52 +669,101 @@ export function useAuth() {
         if (raw) savedChief = JSON.parse(raw);
       } catch (e) {}
     }
-    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && u.mobile === mobile) || (mobile === '9999999999' && u.id === 'chief-warden-primary')) || (savedChief && (savedChief.mobile === mobile || mobile === '9999999999') ? savedChief : null) || (mobile === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
-    if (chief) {
-      if (chief.password && chief.password.trim().length > 0) {
-        if (chief.password === password) {
-          localStorage.setItem('hostelin_auth', JSON.stringify(chief));
-          setUser(chief);
+
+    const chiefInMemory = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
+                         (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null);
+
+    if (chiefInMemory) {
+      targetUser = chiefInMemory;
+    } else {
+      targetUser = allottedUsers.find(u => u.mobile === clean) || null;
+    }
+
+    // Direct cloud fallback if not resolved in memory
+    if (!targetUser && db) {
+      try {
+        if (clean === '9999999999') {
+          const chiefSnap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
+          if (chiefSnap.exists()) {
+            targetUser = { ...chiefSnap.data(), id: chiefSnap.id } as User;
+          } else {
+            targetUser = DEFAULT_CHIEF_WARDEN;
+          }
+        } else {
+          const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
+          if (!qSnap.empty) {
+            targetUser = { ...qSnap.docs[0].data(), id: qSnap.docs[0].id } as User;
+          } else {
+            const chiefSnap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
+            if (chiefSnap.exists()) {
+              const cData = { ...chiefSnap.data(), id: chiefSnap.id } as User;
+              if (cData.mobile === clean) {
+                targetUser = cData;
+              }
+            }
+            if (!targetUser) {
+              const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
+              if (!hSnap.empty) {
+                const hData = hSnap.docs[0].data() as Hostel;
+                targetUser = {
+                  id: `warden-${hSnap.docs[0].id}`,
+                  name: hData.wardenName,
+                  mobile: hData.wardenMobile,
+                  role: 'WARDEN',
+                  hostelId: hSnap.docs[0].id,
+                  hostelName: hData.name,
+                  hostelType: hData.type,
+                  institutionName: hData.institutionName,
+                  gender: hData.wardenGender || (hData.type === 'Girls' ? 'Female' : 'Male'),
+                  description: hData.wardenAbout || hData.description || `Official Warden for ${hData.name}`
+                };
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Direct Firestore login lookup error:", e);
+      }
+    }
+
+    if (!targetUser && clean === '9999999999') {
+      targetUser = DEFAULT_CHIEF_WARDEN;
+    }
+
+    if (!targetUser) {
+      return { success: false };
+    }
+
+    // Chief Warden check
+    if (targetUser.role === 'CHIEF_WARDEN' || targetUser.id === 'chief-warden-primary') {
+      if (targetUser.password && targetUser.password.trim().length > 0) {
+        if (targetUser.password === password) {
+          localStorage.setItem('hostelin_auth', JSON.stringify(targetUser));
+          localStorage.setItem('hostelin_chief_profile', JSON.stringify(targetUser));
+          setUser(targetUser);
           setActiveHostelId(null);
-          return { success: true, user: chief, role: 'CHIEF_WARDEN', isBootstrap: !chief.profileCompleted };
+          return { success: true, user: targetUser, role: 'CHIEF_WARDEN', isBootstrap: !targetUser.profileCompleted };
         }
         return { success: false };
       } else {
-        localStorage.setItem('hostelin_auth', JSON.stringify(chief));
-        setUser(chief);
+        localStorage.setItem('hostelin_auth', JSON.stringify(targetUser));
+        setUser(targetUser);
         setActiveHostelId(null);
-        return { success: true, user: chief, role: 'CHIEF_WARDEN', isBootstrap: true };
+        return { success: true, user: targetUser, role: 'CHIEF_WARDEN', isBootstrap: true };
       }
     }
 
-    let allotted = allottedUsers.find(s => s.mobile === mobile);
-    if (!allotted) {
-      const hostel = hostels.find(h => h.wardenMobile === mobile);
-      if (hostel) {
-        allotted = {
-          id: `warden-${hostel.id}`,
-          name: hostel.wardenName,
-          mobile: hostel.wardenMobile,
-          role: 'WARDEN',
-          hostelId: hostel.id,
-          hostelName: hostel.name,
-          hostelType: hostel.type,
-          institutionName: hostel.institutionName,
-          gender: hostel.wardenGender || (hostel.type === 'Girls' ? 'Female' : 'Male'),
-          description: hostel.wardenAbout || hostel.description || `Official Warden for ${hostel.name}`
-        };
-      }
-    }
-
-    if (allotted && (allotted.password === password || (!allotted.password && !password))) {
+    // Regular User / Warden check
+    if (targetUser.password === password || (!targetUser.password && !password)) {
       localStorage.removeItem('hostelin_is_demo');
-      localStorage.setItem('hostelin_auth', JSON.stringify(allotted));
-      setUser(allotted);
-      if (allotted.hostelId) {
-        setActiveHostelId(allotted.hostelId);
+      localStorage.setItem('hostelin_auth', JSON.stringify(targetUser));
+      setUser(targetUser);
+      if (targetUser.hostelId) {
+        setActiveHostelId(targetUser.hostelId);
       }
-      return { success: true, user: allotted, role: allotted.role };
+      return { success: true, user: targetUser, role: targetUser.role };
     }
+
     return { success: false };
   };
 
@@ -610,7 +771,17 @@ export function useAuth() {
     mobile: string, 
     answers: { petName?: string; favouritePerson?: string; nickname?: string }
   ): boolean => {
-    const chief = allottedUsers.find(u => u.mobile === mobile) || DEFAULT_CHIEF_WARDEN;
+    const clean = mobile.trim();
+    let savedChief: User | null = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_chief_profile');
+        if (raw) savedChief = JSON.parse(raw);
+      } catch (e) {}
+    }
+    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
+                  (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+                  DEFAULT_CHIEF_WARDEN;
     const sq = chief.securityQuestions;
     if (!sq) return false;
 
@@ -622,7 +793,17 @@ export function useAuth() {
   };
 
   const resetChiefWardenPassword = async (mobile: string = '9999999999') => {
-    const chief = allottedUsers.find(u => u.mobile === mobile) || DEFAULT_CHIEF_WARDEN;
+    const clean = mobile.trim();
+    let savedChief: User | null = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hostelin_chief_profile');
+        if (raw) savedChief = JSON.parse(raw);
+      } catch (e) {}
+    }
+    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
+                  (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+                  DEFAULT_CHIEF_WARDEN;
     if (db) {
       const userRef = doc(db, 'users', chief.id);
       await setDoc(userRef, { 
@@ -902,6 +1083,9 @@ export function useAuth() {
     if (db) {
       try {
         await setDoc(doc(db, 'users', updatedUser.id), updatedUser, { merge: true });
+        if (updatedUser.role === 'CHIEF_WARDEN' && updatedUser.id !== 'chief-warden-primary') {
+          await setDoc(doc(db, 'users', 'chief-warden-primary'), updatedUser, { merge: true });
+        }
       } catch (err) {
         console.warn("Firestore sync deferred (persisted locally):", err);
       }
@@ -1035,6 +1219,7 @@ export function useAuth() {
     exitDemoSession,
     login, 
     checkMobile, 
+    verifyMobile,
     setupPassword, 
     logout, 
     loading: loading || !isAuthReady, 

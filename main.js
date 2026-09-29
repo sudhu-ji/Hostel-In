@@ -122,8 +122,20 @@ function startServer(callback) {
     }
   });
 
-  server.listen(0, '127.0.0.1', () => {
-    callback(server.address().port);
+  const PREFERRED_PORT = 24118;
+  server.once('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`Port ${PREFERRED_PORT} in use, falling back to random port...`);
+      server.listen(0, '127.0.0.1', () => {
+        callback(server.address().port);
+      });
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+
+  server.listen(PREFERRED_PORT, '127.0.0.1', () => {
+    callback(PREFERRED_PORT);
   });
 }
 

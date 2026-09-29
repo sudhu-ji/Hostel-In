@@ -89,7 +89,9 @@ export default function LoginPage() {
     };
   }, []);
   
-  const { checkMobile, login, setupPassword, verifySecurityQuestion, resetChiefWardenPassword, user: authUser, loading } = useAuth();
+  const { checkMobile, verifyMobile, login, setupPassword, verifySecurityQuestion, resetChiefWardenPassword, user: authUser, loading } = useAuth();
+  const [isCheckingMobile, setIsCheckingMobile] = useState(false);
+  const [isChiefLogin, setIsChiefLogin] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   
@@ -155,7 +157,7 @@ export default function LoginPage() {
     }
   }, [authUser, loading, router, mounted, showSplash]);
 
-  const handleMobileSubmit = (e: React.FormEvent) => {
+  const handleMobileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!termsAccepted) {
@@ -167,45 +169,59 @@ export default function LoginPage() {
       return;
     }
 
-    // Chief Warden login / first-time identity check
-    if (mobile === '9999999999') {
-      const { hasPassword } = checkMobile('9999999999');
-      if (hasPassword) {
+    const cleanMobile = mobile.trim();
+    if (!cleanMobile) return;
+
+    setIsCheckingMobile(true);
+    try {
+      const result = await verifyMobile(cleanMobile);
+
+      if (result.isChiefWarden) {
+        setIsChiefLogin(true);
+        if (result.hasPassword) {
+          setStep('password');
+        } else {
+          toast({ title: "Welcome Chief Warden", description: "Please create your administrative profile..." });
+          await login(cleanMobile);
+          router.push('/onboarding');
+        }
+        return;
+      }
+
+      setIsChiefLogin(false);
+
+      // Check if allotment phase is active and user is not Warden/Chief Warden
+      if (isAllotmentActive && result.role !== 'WARDEN' && result.role !== 'CHIEF_WARDEN') {
+        toast({
+          title: "Access Restricted",
+          description: "Access is restricted to Administration during the new session allotment phase.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!result.exists) {
+        toast({
+          title: "Access Denied",
+          description: "This mobile number is not allotted. Contact administration.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (result.hasPassword) {
         setStep('password');
       } else {
-        toast({ title: "Welcome Chief Warden", description: "Please create your administrative profile..." });
-        login('9999999999').then(() => {
-          router.push('/onboarding');
-        });
+        setStep('create-password');
       }
-      return;
-    }
-
-    // Check if allotment phase is active and user is not Warden
-    if (isAllotmentActive && mobile !== '9999999999') {
+    } catch (err) {
       toast({
-        title: "Access Restricted",
-        description: "Access is restricted to Administration during the new session allotment phase.",
+        title: "Verification Error",
+        description: "Could not verify credentials. Please try again.",
         variant: "destructive"
       });
-      return;
-    }
-
-    const { exists, hasPassword } = checkMobile(mobile);
-    
-    if (!exists) {
-      toast({
-        title: "Access Denied",
-        description: "This mobile number is not allotted. Contact administration.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (hasPassword) {
-      setStep('password');
-    } else {
-      setStep('create-password');
+    } finally {
+      setIsCheckingMobile(false);
     }
   };
 
@@ -225,7 +241,7 @@ export default function LoginPage() {
         } else {
           toast({
             title: "Incorrect Password",
-            description: mobile === '9999999999'
+            description: (isChiefLogin || mobile === '9999999999')
               ? "Incorrect password. Click 'Forgot Password?' below to reset via security questions."
               : "Please check your credentials or request a reset from your Warden.",
             variant: "destructive"
@@ -621,10 +637,18 @@ export default function LoginPage() {
             <CardFooter className="flex flex-col space-y-4 pt-4 pb-8">
               <Button 
                 type="submit" 
-                disabled={!termsAccepted || isSubmitting} 
+                disabled={!termsAccepted || isSubmitting || isCheckingMobile} 
                 className="w-full text-base h-12 font-black uppercase tracking-wider shadow-md hover:scale-[1.01] transition-transform gap-2"
               >
-                Next <ArrowRight size={18} />
+                {isCheckingMobile ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Verifying...
+                  </>
+                ) : (
+                  <>
+                    Next <ArrowRight size={18} />
+                  </>
+                )}
               </Button>
               {isAllotmentActive && (
                 <Button 
@@ -678,7 +702,7 @@ export default function LoginPage() {
                   </p>
                 )}
 
-                {step === 'password' && mobile === '9999999999' && (
+                {step === 'password' && (isChiefLogin || mobile === '9999999999') && (
                   <div className="flex justify-end pt-1">
                     <button
                       type="button"
