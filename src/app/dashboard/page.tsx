@@ -249,6 +249,7 @@ export default function DashboardPage() {
     setActiveHostelId, 
     createHostel, 
     updateHostel, 
+    softRemoveHostel,
     deleteHostel, 
     logout 
   } = useAuth();
@@ -299,36 +300,22 @@ export default function DashboardPage() {
   const [hostelThemeMode, setHostelThemeMode] = useState<'light' | 'dark'>('dark');
   const [isSubmittingHostel, setIsSubmittingHostel] = useState(false);
 
-  // Soft remove hostel from this app only
+  // Soft remove hostel from active operations
   const handleSoftRemoveHostel = async () => {
     if (!hostelToDelete) return;
     try {
-      const hiddenRaw = localStorage.getItem('hostelin_hidden_hostels') || '[]';
-      const hiddenArr = JSON.parse(hiddenRaw);
-      if (!hiddenArr.includes(hostelToDelete.id)) {
-        hiddenArr.push(hostelToDelete.id);
-        localStorage.setItem('hostelin_hidden_hostels', JSON.stringify(hiddenArr));
-      }
-      setHiddenHostelIds(prev => [...prev, hostelToDelete.id]);
-      toast({ title: "Hostel Removed from App", description: `${hostelToDelete.name} has been hidden from this app.` });
+      await softRemoveHostel(hostelToDelete.id);
+      toast({ title: "Hostel Removed from App", description: `${hostelToDelete.name} has been hidden from active view.` });
       setIsDeleteHostelOpen(false);
       setHostelToDelete(null);
     } catch (e) {
       console.error("Soft remove failed:", e);
+      toast({ title: "Removal Failed", description: "Could not remove hostel.", variant: "destructive" });
     }
   };
 
   // Delete Hostel Confirmation State
   const [hostelToDelete, setHostelToDelete] = useState<Hostel | null>(null);
-  const [hiddenHostelIds, setHiddenHostelIds] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('hostelin_hidden_hostels');
-        return raw ? JSON.parse(raw) : [];
-      } catch(e) {}
-    }
-    return [];
-  });
   const [isDeleteHostelOpen, setIsDeleteHostelOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -957,7 +944,7 @@ export default function DashboardPage() {
                   <CardHeader className="bg-primary/5 border-b flex flex-row items-center justify-between py-4 sm:py-5 px-4 sm:px-6 gap-3">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-xl sm:text-2xl font-black font-headline tracking-tight text-primary flex items-center gap-2">
-                        <Building2 size={22} className="shrink-0" /> <span className="truncate">All Hostels ({hostels.filter(h => !hiddenHostelIds.includes(h.id)).length})</span>
+                        <Building2 size={22} className="shrink-0" /> <span className="truncate">All Hostels ({hostels.length})</span>
                       </CardTitle>
                       <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5 truncate">
                         Visit all hostels in one click.
@@ -984,7 +971,7 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {hostels.filter(h => !hiddenHostelIds.includes(h.id)).map((h) => {
+                      {hostels.map((h) => {
                         const themeStyle = HOSTEL_THEME_MAP[h.themeColor] || HOSTEL_THEME_MAP.blue;
                         return (
                           <div 

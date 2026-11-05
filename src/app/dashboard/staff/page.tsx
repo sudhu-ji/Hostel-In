@@ -115,7 +115,15 @@ export default function StaffPage() {
       updateAllottedUser({ ...selectedStaff, name, mobile, description: desc } as User);
       toast({ title: "Updated", description: "Information updated." });
     } else {
-      addAllottedUser({ id: Math.random().toString(36).substr(2, 9), name, mobile, role: 'STAFF', description: desc });
+      addAllottedUser({ 
+        id: Math.random().toString(36).substr(2, 9), 
+        name, 
+        mobile, 
+        role: 'STAFF', 
+        description: desc,
+        hostelId: targetHostelId,
+        hostelName: currentHostelName
+      });
       toast({ title: "Registered", description: "Staff member added." });
     }
     setIsEditOpen(false);

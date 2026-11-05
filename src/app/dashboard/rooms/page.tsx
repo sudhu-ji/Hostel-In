@@ -68,14 +68,14 @@ export default function RoomsPage() {
     }
   }, [cloudRooms]);
 
-  const rooms = cloudRooms && cloudRooms.length > 0 ? cloudRooms : localRooms;
+  const rawRooms = (cloudRooms && cloudRooms.length > 0) ? cloudRooms : localRooms;
+  const rooms = rawRooms.filter(r => !(r as any).isRemoved);
   
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomToDeleteId, setRoomToDeleteId] = useState<string | null>(null);
-  const [hiddenRoomIds, setHiddenRoomIds] = useState<string[]>([]);
   
   const [roomId, setRoomId] = useState("");
   const [roomType, setRoomType] = useState<'Single' | 'Double' | 'Triple' | 'Warden' | 'Abandoned'>('Double');
@@ -117,7 +117,6 @@ export default function RoomsPage() {
 
   // Sort and filter rooms in ascending order by ID for the active hostel only
   const sortedRooms = React.useMemo(() => {
-    const activeRoomsList = (rooms || []).filter(rm => !hiddenRoomIds.includes(rm.id));
     if (!rooms) return [];
     const filtered = rooms.filter(r => (r as any).hostelId ? ((r as any).hostelId === targetHostelId || !targetHostelId || (r as any).hostelId === activeHostel?.id) : true);
     return [...filtered].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
@@ -171,7 +170,8 @@ export default function RoomsPage() {
       features: features.trim(), 
       scarcities: scarcities.trim(), 
       residentIds: finalResidentIds,
-      hostelId: targetHostelId
+      hostelId: targetHostelId,
+      isRemoved: false
     } as any;
 
     const previousResidents = selectedRoom ? getRoomResidents(selectedRoom) : [];
@@ -237,7 +237,18 @@ export default function RoomsPage() {
           if (student) await updateAllottedUser({ ...student, room: 'N/A' });
         }
       }
+      await updateDoc(doc(db, 'rooms', roomToDeleteId), { isRemoved: true });
       await deleteDoc(doc(db, 'rooms', roomToDeleteId));
+      setLocalRooms(prev => prev.filter(r => r.id !== roomToDeleteId));
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('hostelin_rooms');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            localStorage.setItem('hostelin_rooms', JSON.stringify(parsed.filter((r: any) => r.id !== roomToDeleteId)));
+          } catch (e) {}
+        }
+      }
       toast({ title: "Room Deleted", description: `Room ${roomToDeleteId} has been removed from inventory.` });
     } catch (e) {
       toast({ title: "Error", description: "Could not delete room.", variant: "destructive" });
@@ -612,11 +623,24 @@ export default function RoomsPage() {
             itemName={`Room ${roomToDeleteId || ''}`}
             itemType="room"
             onSoftDelete={async () => {
-              if (roomToDeleteId) {
-                setHiddenRoomIds(prev => [...prev, roomToDeleteId]);
-                toast({ title: "Room Removed from App", description: `Room ${roomToDeleteId} has been hidden from view.` });
-                setIsDeleteConfirmOpen(false);
-                setRoomToDeleteId(null);
+              if (roomToDeleteId && db) {
+                try {
+                  const roomToDelete = rooms?.find(r => r.id === roomToDeleteId);
+                  if (roomToDelete?.residentIds) {
+                    for (const resId of roomToDelete.residentIds) {
+                      const student = allottedUsers.find(u => u.id === resId);
+                      if (student) await updateAllottedUser({ ...student, room: 'N/A' });
+                    }
+                  }
+                  await updateDoc(doc(db, 'rooms', roomToDeleteId), { isRemoved: true });
+                  setLocalRooms(prev => prev.filter(r => r.id !== roomToDeleteId));
+                  toast({ title: "Room Removed from App", description: `Room ${roomToDeleteId} has been hidden from view.` });
+                } catch (e) {
+                  toast({ title: "Error", description: "Could not remove room.", variant: "destructive" });
+                } finally {
+                  setIsDeleteConfirmOpen(false);
+                  setRoomToDeleteId(null);
+                }
               }
             }}
             onHardDelete={handleRemoveConfirm}

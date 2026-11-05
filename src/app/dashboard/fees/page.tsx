@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FeeManagementPage() {
-  const { user, allottedUsers, updateFeeStatus, removeAllottedUser, activeHostel } = useAuth();
+  const { user, allottedUsers, updateFeeStatus, removeAllottedUser, softRemoveAllottedUser, activeHostel } = useAuth();
   const [studentToDelete, setStudentToDelete] = useState<any | null>(null);
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -162,8 +162,8 @@ export default function FeeManagementPage() {
           itemType="student"
           onSoftDelete={async () => {
             if (studentToDelete) {
-              await removeAllottedUser(studentToDelete.id);
-              toast({ title: "Resident Removed", description: `${studentToDelete.name} has been removed.` });
+              await softRemoveAllottedUser(studentToDelete.id);
+              toast({ title: "Resident Removed", description: `${studentToDelete.name} has been hidden from active lists.` });
               setStudentToDelete(null);
             }
           }}

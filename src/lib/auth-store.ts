@@ -309,6 +309,18 @@ export function useAuth() {
   const db = useFirestore();
   const auth = useFirebaseAuth();
 
+  const ensureAuthenticated = async () => {
+    if (!auth) return null;
+    if (auth.currentUser) return auth.currentUser;
+    try {
+      const cred = await signInAnonymously(auth);
+      return cred.user;
+    } catch (e) {
+      console.warn("ensureAuthenticated sign in deferred:", e);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -890,18 +902,15 @@ export function useAuth() {
     const newHostel: Hostel = {
       ...data,
       id: hostelId,
+      isRemoved: false,
       createdAt: new Date().toISOString()
     };
 
-    // Remove from deleted list if re-creating
+    // Purge any stale legacy local blacklist
     if (typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
-        if (raw) {
-          const arr: string[] = JSON.parse(raw);
-          const filtered = arr.filter(id => id !== hostelId);
-          localStorage.setItem('hostelin_deleted_hostel_ids', JSON.stringify(filtered));
-        }
+        localStorage.removeItem('hostelin_hidden_hostels');
+        localStorage.removeItem('hostelin_deleted_hostel_ids');
       } catch (e) {}
     }
 
@@ -926,7 +935,8 @@ export function useAuth() {
         institutionName: data.institutionName,
         gender: data.wardenGender || (data.type === 'Girls' ? 'Female' : 'Male'),
         description: data.wardenAbout || data.description || `Official Warden for ${data.name}`,
-        avatarUrl: `https://picsum.photos/seed/${hostelId}/100`
+        avatarUrl: `https://picsum.photos/seed/${hostelId}/100`,
+        isRemoved: false
       };
       setAllottedUsers(prev => {
         const exists = prev.some(u => u.id === wardenId);
@@ -936,6 +946,7 @@ export function useAuth() {
 
     if (db) {
       try {
+        await ensureAuthenticated();
         await setDoc(doc(db, 'hostels', hostelId), newHostel);
         if (wardenUser) {
           await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
@@ -948,51 +959,75 @@ export function useAuth() {
   };
 
   const updateHostel = async (hostel: Hostel) => {
+    if (!hostel || !hostel.id) return;
+    const sanitizedHostel: Hostel = { ...hostel, isRemoved: false };
 
     // Instant optimistic update
-    setHostels(prev => prev.map(h => h.id === hostel.id ? hostel : h));
+    setHostels(prev => prev.map(h => h.id === sanitizedHostel.id ? sanitizedHostel : h));
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`hostel_theme_${hostel.id}`, hostel.themeColor);
-        if (hostel.themeMode) {
-          localStorage.setItem(`hostel_mode_${hostel.id}`, hostel.themeMode);
+        localStorage.setItem(`hostel_theme_${sanitizedHostel.id}`, sanitizedHostel.themeColor);
+        if (sanitizedHostel.themeMode) {
+          localStorage.setItem(`hostel_mode_${sanitizedHostel.id}`, sanitizedHostel.themeMode);
         }
         window.dispatchEvent(new CustomEvent('hostelin_theme_changed', { 
           detail: { 
-            hostelId: hostel.id, 
-            themeColor: hostel.themeColor,
-            themeMode: hostel.themeMode 
+            hostelId: sanitizedHostel.id, 
+            themeColor: sanitizedHostel.themeColor,
+            themeMode: sanitizedHostel.themeMode 
           } 
         }));
       } catch (e) {}
     }
 
     let wardenUser: Partial<User> | null = null;
-    if (hostel.wardenMobile && hostel.wardenName) {
-      const wardenId = `warden-${hostel.id}`;
+    if (sanitizedHostel.wardenMobile && sanitizedHostel.wardenName) {
+      const wardenId = `warden-${sanitizedHostel.id}`;
       wardenUser = {
         id: wardenId,
-        name: hostel.wardenName,
-        mobile: hostel.wardenMobile,
+        name: sanitizedHostel.wardenName,
+        mobile: sanitizedHostel.wardenMobile,
         role: 'WARDEN',
-        hostelId: hostel.id,
-        hostelName: hostel.name,
-        hostelType: hostel.type,
-        institutionName: hostel.institutionName,
-        gender: hostel.wardenGender || (hostel.type === 'Girls' ? 'Female' : 'Male'),
-        description: hostel.wardenAbout || hostel.description || `Official Warden for ${hostel.name}`
+        hostelId: sanitizedHostel.id,
+        hostelName: sanitizedHostel.name,
+        hostelType: sanitizedHostel.type,
+        institutionName: sanitizedHostel.institutionName,
+        gender: sanitizedHostel.wardenGender || (sanitizedHostel.type === 'Girls' ? 'Female' : 'Male'),
+        description: sanitizedHostel.wardenAbout || sanitizedHostel.description || `Official Warden for ${sanitizedHostel.name}`,
+        isRemoved: false
       };
       setAllottedUsers(prev => prev.map(u => u.id === wardenId ? { ...u, ...wardenUser } : u));
     }
 
     if (db) {
       try {
-        await setDoc(doc(db, 'hostels', hostel.id), hostel, { merge: true });
+        await ensureAuthenticated();
+        await setDoc(doc(db, 'hostels', sanitizedHostel.id), sanitizedHostel, { merge: true });
         if (wardenUser && wardenUser.id) {
           await setDoc(doc(db, 'users', wardenUser.id), wardenUser, { merge: true });
         }
       } catch (err) {
         console.warn("Firestore hostel update deferred (saved locally):", err);
+      }
+    }
+  };
+
+  const softRemoveHostel = async (id: string) => {
+    if (isDemoActive()) return;
+
+    // 1. Remove from local state
+    setHostels(prev => prev.filter(h => h.id !== id));
+    if (activeHostelId === id) {
+      setActiveHostelId(null);
+    }
+
+    // 2. Mark isRemoved in Firestore so all devices filter it out in real time
+    if (db) {
+      try {
+        await ensureAuthenticated();
+        await updateDoc(doc(db, 'hostels', id), { isRemoved: true });
+      } catch (err) {
+        console.warn("Firestore hostel soft-delete deferred:", err);
       }
     }
   };
@@ -1023,6 +1058,7 @@ export function useAuth() {
     // 4. Update Firestore with isRemoved: true and deleteDoc
     if (db) {
       try {
+        await ensureAuthenticated();
         await updateDoc(doc(db, 'hostels', id), { isRemoved: true });
         await deleteDoc(doc(db, 'hostels', id));
       } catch (err) {
@@ -1033,10 +1069,12 @@ export function useAuth() {
 
   const addAllottedUser = async (newUser: User) => {
     if (isDemoActive()) return;
-    setAllottedUsers(prev => [...prev.filter(u => u.id !== newUser.id), { ...newUser, isRemoved: false }]);
+    const cleanUser = { ...newUser, isRemoved: false };
+    setAllottedUsers(prev => [...prev.filter(u => u.id !== cleanUser.id), cleanUser]);
     if (db) {
       try {
-        await setDoc(doc(db, 'users', newUser.id), { ...newUser, isRemoved: false }, { merge: true });
+        await ensureAuthenticated();
+        await setDoc(doc(db, 'users', cleanUser.id), cleanUser, { merge: true });
       } catch (err) {
         console.warn("Firestore user add deferred (saved locally):", err);
       }
@@ -1045,34 +1083,36 @@ export function useAuth() {
 
   const updateAllottedUser = async (updatedUser: User) => {
     if (isDemoActive()) return;
+    const cleanUser = { ...updatedUser, isRemoved: false };
 
     // Immediately update local state & persistent cache
     setAllottedUsers(prev => {
-      const idx = prev.findIndex(u => u.id === updatedUser.id || (u.role === 'CHIEF_WARDEN' && updatedUser.role === 'CHIEF_WARDEN'));
+      const idx = prev.findIndex(u => u.id === cleanUser.id || (u.role === 'CHIEF_WARDEN' && cleanUser.role === 'CHIEF_WARDEN'));
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = { ...next[idx], ...updatedUser };
+        next[idx] = { ...next[idx], ...cleanUser };
         return next;
       }
-      return [...prev, updatedUser];
+      return [...prev, cleanUser];
     });
 
-    if (updatedUser.role === 'CHIEF_WARDEN') {
-      localStorage.setItem('hostelin_chief_profile', JSON.stringify(updatedUser));
+    if (cleanUser.role === 'CHIEF_WARDEN') {
+      localStorage.setItem('hostelin_chief_profile', JSON.stringify(cleanUser));
     }
 
-    if (user?.id === updatedUser.id || (user?.role === 'CHIEF_WARDEN' && updatedUser.role === 'CHIEF_WARDEN')) {
+    if (user?.id === cleanUser.id || (user?.role === 'CHIEF_WARDEN' && cleanUser.role === 'CHIEF_WARDEN')) {
       localStorage.removeItem('hostelin_is_demo');
-      localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      localStorage.setItem('hostelin_auth', JSON.stringify(cleanUser));
+      setUser(cleanUser);
     }
 
     if (db) {
       try {
-        await setDoc(doc(db, 'users', updatedUser.id), updatedUser, { merge: true });
-        if (updatedUser.role === 'CHIEF_WARDEN') {
+        await ensureAuthenticated();
+        await setDoc(doc(db, 'users', cleanUser.id), cleanUser, { merge: true });
+        if (cleanUser.role === 'CHIEF_WARDEN') {
           // Always ensure chief-warden-primary has the latest authoritative record
-          await setDoc(doc(db, 'users', 'chief-warden-primary'), updatedUser, { merge: true });
+          await setDoc(doc(db, 'users', 'chief-warden-primary'), cleanUser, { merge: true });
         }
       } catch (err) {
         console.warn("Firestore sync deferred (persisted locally):", err);
@@ -1084,9 +1124,10 @@ export function useAuth() {
     setAllottedUsers(prev => prev.map(u => u.id === id ? { ...u, isRemoved: true } : u));
     if (db) {
       try {
+        await ensureAuthenticated();
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
         await Promise.race([
-          updateDoc(doc(db, 'users', id), { isRemoved: true }),
+          updateDoc(doc(db, 'users', id), { isRemoved: true, removedAt: new Date().toISOString() }),
           timeoutPromise
         ]);
       } catch (err) {
@@ -1111,6 +1152,7 @@ export function useAuth() {
     // 2. Mark isRemoved in Firestore for real-time synchronization, then delete document
     if (db) {
       try {
+        await ensureAuthenticated();
         await updateDoc(doc(db, 'users', id), { isRemoved: true });
         await deleteDoc(doc(db, 'users', id));
       } catch (err) {
@@ -1123,6 +1165,7 @@ export function useAuth() {
     setAllottedUsers(prev => prev.map(u => u.id === id ? { ...u, password: "" } : u));
     if (db) {
       try {
+        await ensureAuthenticated();
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
         await Promise.race([
           updateDoc(doc(db, 'users', id), { password: "" }),
@@ -1138,6 +1181,7 @@ export function useAuth() {
     setAllottedUsers(prev => prev.map(u => u.id === studentId ? { ...u, feeStatus: status } : u));
     if (db) {
       try {
+        await ensureAuthenticated();
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 2500));
         await Promise.race([
           updateDoc(doc(db, 'users', studentId), { feeStatus: status }),
@@ -1200,6 +1244,7 @@ export function useAuth() {
     setActiveHostelId,
     createHostel,
     updateHostel,
+    softRemoveHostel,
     deleteHostel,
     launchDemoSession,
     exitDemoSession,

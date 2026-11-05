@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 interface Expense {
   id: string;
@@ -61,6 +61,9 @@ export default function MessPage() {
   // Expenses Query
   const expensesQuery = useMemoFirebase(() => db ? query(collection(db, 'hostels', hostelId, 'expenditures'), orderBy('date', 'desc')) : null, [db, hostelId]);
   const { data: expenses } = useCollection<Expense>(expensesQuery);
+  const visibleExpenses = React.useMemo(() => {
+    return (expenses || []).filter(e => !(e as any).isRemoved);
+  }, [expenses]);
 
   // Menu Query
   const menuQuery = useMemoFirebase(() => db ? collection(db, 'hostels', hostelId, 'messMenu') : null, [db, hostelId]);
@@ -187,7 +190,7 @@ export default function MessPage() {
     }
   };
 
-  const totalMonthlyCost = (expenses || []).reduce((acc, curr) => acc + curr.cost, 0);
+  const totalMonthlyCost = visibleExpenses.reduce((acc, curr) => acc + curr.cost, 0);
 
   const displayMenu = menuData && menuData.length > 0 ? 
     [...DEFAULT_MENU].map(def => menuData.find(m => m.id === def.id) || def) : 
@@ -360,7 +363,7 @@ export default function MessPage() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-3 min-h-[300px]">
-                  {expenses && expenses.length > 0 ? expenses.map(exp => (
+                  {visibleExpenses && visibleExpenses.length > 0 ? visibleExpenses.map(exp => (
                     <div key={exp.id} className="flex justify-between items-center p-4 bg-muted/10 rounded-xl border border-muted/50 hover:border-primary/20 transition-all shadow-sm">
                       <div className="flex-1">
                         <p className="font-bold text-sm leading-none mb-1">{exp.item}</p>
@@ -425,11 +428,16 @@ export default function MessPage() {
         itemName={expenses?.find(e => e.id === expenseToDelete)?.item || "Expense Record"}
         itemType="expense"
         onSoftDelete={async () => {
-          if (expenseToDelete) {
-            setHiddenExpenseIds(prev => [...prev, expenseToDelete]);
-            toast({ title: "Expense Removed from App", description: "Record has been hidden from view on this device." });
-            setIsDeleteConfirmOpen(false);
-            setExpenseToDelete(null);
+          if (expenseToDelete && db) {
+            try {
+              await updateDoc(doc(db, 'hostels', hostelId, 'expenditures', expenseToDelete), { isRemoved: true });
+              toast({ title: "Expense Removed from App", description: "Record has been hidden from view." });
+            } catch (err) {
+              toast({ title: "Error", description: "Could not remove expense.", variant: "destructive" });
+            } finally {
+              setIsDeleteConfirmOpen(false);
+              setExpenseToDelete(null);
+            }
           }
         }}
         onHardDelete={handleDeleteExpense}
