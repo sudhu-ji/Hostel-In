@@ -15,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { requestNotificationPermissions, requestLocationPermissions } from '@/lib/permissions';
 
 export default function LoginPage() {
   const [mobile, setMobile] = useState("");
@@ -51,23 +50,11 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Prompt for Notification & Location Permissions immediately on initial app launch/install for all users
-  useEffect(() => {
-    const initPermissions = async () => {
-      try {
-        await requestNotificationPermissions();
-        await requestLocationPermissions();
-      } catch (err) {
-        console.warn("Initial app permission initialization caught safely:", err);
-      }
-    };
-    initPermissions();
-  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Developer tools and right-click inspection prevention
+  // Client-side inspection and developer tool shortcuts prevention
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -79,6 +66,11 @@ export default function LoginPage() {
       }
     };
     const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Allow context menu for input and textarea so users can paste / copy legitimately
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
       e.preventDefault();
     };
     window.addEventListener('keydown', handleKeyDown);

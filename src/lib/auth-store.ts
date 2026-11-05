@@ -376,46 +376,22 @@ export function useAuth() {
     };
     seedInitialData();
 
-    // Listen to Hostels (Cloud data is single ground truth, respecting deletedHostelIds)
+    // Listen to Hostels (Cloud Firestore is single ground truth across all devices)
     const unsubHostels = onSnapshot(collection(db, 'hostels'), (snap) => {
-      let deletedHostelIds: string[] = [];
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
-          if (raw) deletedHostelIds = JSON.parse(raw);
-        } catch (e) {}
-      }
-
       const cloudHostels = snap.docs
         .map(d => ({ ...d.data(), id: d.id } as Hostel))
-        .filter(h => !deletedHostelIds.includes(h.id));
+        .filter(h => !h.isRemoved);
 
       setHostels(cloudHostels);
     }, (err) => {
       console.warn("Hostels snapshot error:", err);
     });
 
-    // Listen to Users (Cloud data is single ground truth, respecting deletions & hostel cascade)
+    // Listen to Users (Cloud Firestore is single ground truth across all devices)
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      let deletedUserIds: string[] = [];
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('hostelin_deleted_user_ids');
-          if (raw) deletedUserIds = JSON.parse(raw);
-        } catch (e) {}
-      }
-
-      let deletedHostelIds: string[] = [];
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
-          if (raw) deletedHostelIds = JSON.parse(raw);
-        } catch (e) {}
-      }
-
       const cloudUsers = snapshot.docs
         .map(d => ({ ...d.data(), id: d.id } as User))
-        .filter(u => !u.isRemoved && !deletedUserIds.includes(u.id) && !(u.hostelId && deletedHostelIds.includes(u.hostelId)));
+        .filter(u => !u.isRemoved);
 
       setAllottedUsers(cloudUsers);
 
@@ -490,17 +466,31 @@ export function useAuth() {
         if (raw) savedChief = JSON.parse(raw);
       } catch (e) {}
     }
-    const foundAdmin = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
-                       (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
-                       (clean === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
-    if (foundAdmin) {
-      const hasPwd = !!(foundAdmin.password && foundAdmin.password.trim().length > 0 && foundAdmin.profileCompleted);
-      return {
-        exists: true,
-        hasPassword: hasPwd,
-        role: 'CHIEF_WARDEN',
-        isBootstrapAdmin: !hasPwd
-      };
+    const chiefInList = allottedUsers.find(u => u.role === 'CHIEF_WARDEN' || u.id === 'chief-warden-primary');
+    const chief = chiefInList || savedChief;
+    const isChiefConfigured = !!(chief && chief.profileCompleted && chief.mobile && chief.mobile !== '9999999999');
+
+    if (isChiefConfigured) {
+      if (clean === '9999999999') {
+        return { exists: false, hasPassword: false };
+      }
+      if (clean === chief.mobile) {
+        return {
+          exists: true,
+          hasPassword: !!(chief.password && chief.password.trim().length > 0),
+          role: 'CHIEF_WARDEN',
+          isBootstrapAdmin: false
+        };
+      }
+    } else {
+      if (clean === '9999999999') {
+        return {
+          exists: true,
+          hasPassword: false,
+          role: 'CHIEF_WARDEN',
+          isBootstrapAdmin: true
+        };
+      }
     }
 
     let found = allottedUsers.find(u => u.mobile === clean);
@@ -557,15 +547,13 @@ export function useAuth() {
             const idx = prev.findIndex(u => u.id === 'chief-warden-primary');
             return idx >= 0 ? prev.map(u => u.id === 'chief-warden-primary' ? cData : u) : [cData, ...prev];
           });
-          if (clean === '9999999999' || clean === cData.mobile) {
-            chiefUser = cData;
-          }
+          chiefUser = cData;
         }
       } catch (e) {
         console.warn("Direct Firestore lookup of chief-warden-primary failed:", e);
       }
 
-      if (!chiefUser && clean !== '9999999999') {
+      if (clean !== '9999999999') {
         try {
           const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
           if (!qSnap.empty) {
@@ -583,7 +571,7 @@ export function useAuth() {
         }
       }
 
-      if (!chiefUser && !regularUser) {
+      if (!regularUser && (!chiefUser || chiefUser.mobile !== clean)) {
         try {
           const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
           if (!hSnap.empty) {
@@ -596,7 +584,7 @@ export function useAuth() {
     }
 
     // 2. In-memory fallback
-    if (!chiefUser && !regularUser && !wardenHostel) {
+    if (!chiefUser) {
       let savedChief: User | null = null;
       if (typeof window !== 'undefined') {
         try {
@@ -604,33 +592,43 @@ export function useAuth() {
           if (raw) savedChief = JSON.parse(raw);
         } catch (e) {}
       }
-      const admin = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
-                   (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
-                   (clean === '9999999999' ? DEFAULT_CHIEF_WARDEN : null);
-      if (admin) {
-        chiefUser = admin;
-      } else {
-        regularUser = allottedUsers.find(u => u.mobile === clean) || null;
-        if (!regularUser) {
-          wardenHostel = hostels.find(h => h.wardenMobile === clean) || null;
-        }
-      }
+      chiefUser = allottedUsers.find(u => u.role === 'CHIEF_WARDEN' || u.id === 'chief-warden-primary') || savedChief || DEFAULT_CHIEF_WARDEN;
     }
 
     // 3. Chief Warden evaluation
-    if (chiefUser || clean === '9999999999') {
-      const target = chiefUser || DEFAULT_CHIEF_WARDEN;
-      const hasPwd = !!(target.password && target.password.trim().length > 0 && target.profileCompleted);
-      return {
-        exists: true,
-        hasPassword: hasPwd,
-        role: 'CHIEF_WARDEN',
-        isChiefWarden: true,
-        isBootstrap: !hasPwd
-      };
+    const isChiefConfigured = !!(chiefUser && chiefUser.profileCompleted && chiefUser.mobile && chiefUser.mobile !== '9999999999');
+
+    if (isChiefConfigured) {
+      // Bootstrap number 9999999999 is permanently closed once configured
+      if (clean === '9999999999') {
+        return { exists: false, hasPassword: false };
+      }
+      if (clean === chiefUser.mobile) {
+        return {
+          exists: true,
+          hasPassword: !!(chiefUser.password && chiefUser.password.trim().length > 0),
+          role: 'CHIEF_WARDEN',
+          isChiefWarden: true,
+          isBootstrap: false
+        };
+      }
+    } else {
+      // Bootstrap phase active: 9999999999 triggers initial setup
+      if (clean === '9999999999') {
+        return {
+          exists: true,
+          hasPassword: false,
+          role: 'CHIEF_WARDEN',
+          isChiefWarden: true,
+          isBootstrap: true
+        };
+      }
     }
 
     // 4. Regular user evaluation
+    if (!regularUser) {
+      regularUser = allottedUsers.find(u => u.mobile === clean) || null;
+    }
     if (regularUser) {
       return {
         exists: true,
@@ -642,6 +640,9 @@ export function useAuth() {
     }
 
     // 5. Hostel Warden evaluation
+    if (!wardenHostel) {
+      wardenHostel = hostels.find(h => h.wardenMobile === clean) || null;
+    }
     if (wardenHostel) {
       return {
         exists: true,
@@ -660,74 +661,75 @@ export function useAuth() {
 
   const login = async (mobile: string, password?: string): Promise<{ success: boolean; user?: User; role?: UserRole; isBootstrap?: boolean }> => {
     const clean = mobile.trim();
-    let targetUser: User | null = null;
-
-    let savedChief: User | null = null;
+    let chiefDoc: User | null = null;
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem('hostelin_chief_profile');
-        if (raw) savedChief = JSON.parse(raw);
+        if (raw) chiefDoc = JSON.parse(raw);
+      } catch (e) {}
+    }
+    if (!chiefDoc) {
+      chiefDoc = allottedUsers.find(u => u.role === 'CHIEF_WARDEN' || u.id === 'chief-warden-primary') || null;
+    }
+
+    if (!chiefDoc && db) {
+      try {
+        const snap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
+        if (snap.exists()) {
+          chiefDoc = { ...snap.data(), id: snap.id } as User;
+        }
       } catch (e) {}
     }
 
-    const chiefInMemory = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
-                         (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null);
+    const isChiefConfigured = !!(chiefDoc && chiefDoc.profileCompleted && chiefDoc.mobile && chiefDoc.mobile !== '9999999999');
 
-    if (chiefInMemory) {
-      targetUser = chiefInMemory;
+    // Bootstrap mobile handling
+    if (clean === '9999999999') {
+      if (isChiefConfigured) {
+        return { success: false }; // Bootstrap permanently locked
+      }
+      const targetUser = chiefDoc || DEFAULT_CHIEF_WARDEN;
+      localStorage.setItem('hostelin_auth', JSON.stringify(targetUser));
+      setUser(targetUser);
+      setActiveHostelId(null);
+      return { success: true, user: targetUser, role: 'CHIEF_WARDEN', isBootstrap: true };
+    }
+
+    // Normal login lookup
+    let targetUser: User | null = null;
+    if (chiefDoc && chiefDoc.mobile === clean) {
+      targetUser = chiefDoc;
     } else {
       targetUser = allottedUsers.find(u => u.mobile === clean) || null;
     }
 
-    // Direct cloud fallback if not resolved in memory
+    // Direct cloud fallback
     if (!targetUser && db) {
       try {
-        if (clean === '9999999999') {
-          const chiefSnap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
-          if (chiefSnap.exists()) {
-            targetUser = { ...chiefSnap.data(), id: chiefSnap.id } as User;
-          } else {
-            targetUser = DEFAULT_CHIEF_WARDEN;
-          }
+        const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
+        if (!qSnap.empty) {
+          targetUser = { ...qSnap.docs[0].data(), id: qSnap.docs[0].id } as User;
         } else {
-          const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
-          if (!qSnap.empty) {
-            targetUser = { ...qSnap.docs[0].data(), id: qSnap.docs[0].id } as User;
-          } else {
-            const chiefSnap = await getDoc(doc(db, 'users', 'chief-warden-primary'));
-            if (chiefSnap.exists()) {
-              const cData = { ...chiefSnap.data(), id: chiefSnap.id } as User;
-              if (cData.mobile === clean) {
-                targetUser = cData;
-              }
-            }
-            if (!targetUser) {
-              const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
-              if (!hSnap.empty) {
-                const hData = hSnap.docs[0].data() as Hostel;
-                targetUser = {
-                  id: `warden-${hSnap.docs[0].id}`,
-                  name: hData.wardenName,
-                  mobile: hData.wardenMobile,
-                  role: 'WARDEN',
-                  hostelId: hSnap.docs[0].id,
-                  hostelName: hData.name,
-                  hostelType: hData.type,
-                  institutionName: hData.institutionName,
-                  gender: hData.wardenGender || (hData.type === 'Girls' ? 'Female' : 'Male'),
-                  description: hData.wardenAbout || hData.description || `Official Warden for ${hData.name}`
-                };
-              }
-            }
+          const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
+          if (!hSnap.empty) {
+            const hData = hSnap.docs[0].data() as Hostel;
+            targetUser = {
+              id: `warden-${hSnap.docs[0].id}`,
+              name: hData.wardenName,
+              mobile: hData.wardenMobile,
+              role: 'WARDEN',
+              hostelId: hSnap.docs[0].id,
+              hostelName: hData.name,
+              hostelType: hData.type,
+              institutionName: hData.institutionName,
+              gender: hData.wardenGender || (hData.type === 'Girls' ? 'Female' : 'Male'),
+              description: hData.wardenAbout || hData.description || `Official Warden for ${hData.name}`
+            };
           }
         }
       } catch (e) {
         console.warn("Direct Firestore login lookup error:", e);
       }
-    }
-
-    if (!targetUser && clean === '9999999999') {
-      targetUser = DEFAULT_CHIEF_WARDEN;
     }
 
     if (!targetUser) {
@@ -779,8 +781,8 @@ export function useAuth() {
         if (raw) savedChief = JSON.parse(raw);
       } catch (e) {}
     }
-    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
-                  (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && u.mobile === clean) || (u.role === 'CHIEF_WARDEN') || u.id === 'chief-warden-primary') || 
+                  savedChief || 
                   DEFAULT_CHIEF_WARDEN;
     const sq = chief.securityQuestions;
     if (!sq) return false;
@@ -792,8 +794,8 @@ export function useAuth() {
     return matchPet || matchFav || matchNick;
   };
 
-  const resetChiefWardenPassword = async (mobile: string = '9999999999') => {
-    const clean = mobile.trim();
+  const resetChiefWardenPassword = async (mobile?: string) => {
+    const clean = mobile ? mobile.trim() : '';
     let savedChief: User | null = null;
     if (typeof window !== 'undefined') {
       try {
@@ -801,8 +803,8 @@ export function useAuth() {
         if (raw) savedChief = JSON.parse(raw);
       } catch (e) {}
     }
-    const chief = allottedUsers.find(u => (u.role === 'CHIEF_WARDEN' && (u.mobile === clean || clean === '9999999999')) || (clean === '9999999999' && u.id === 'chief-warden-primary')) || 
-                  (savedChief && (savedChief.mobile === clean || clean === '9999999999') ? savedChief : null) || 
+    const chief = allottedUsers.find(u => (clean && u.mobile === clean) || u.role === 'CHIEF_WARDEN' || u.id === 'chief-warden-primary') || 
+                  savedChief || 
                   DEFAULT_CHIEF_WARDEN;
     if (db) {
       const userRef = doc(db, 'users', chief.id);
@@ -993,19 +995,7 @@ export function useAuth() {
   const deleteHostel = async (id: string) => {
     if (isDemoActive()) return;
 
-    // 1. Record in persistent deleted hostel IDs list
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('hostelin_deleted_hostel_ids');
-        const arr: string[] = raw ? JSON.parse(raw) : [];
-        if (!arr.includes(id)) {
-          arr.push(id);
-          localStorage.setItem('hostelin_deleted_hostel_ids', JSON.stringify(arr));
-        }
-      } catch (e) {}
-    }
-
-    // 2. Remove immediately from local state & storage
+    // 1. Remove immediately from local state & storage
     setHostels(prev => {
       const next = prev.filter(h => h.id !== id);
       if (typeof window !== 'undefined') {
@@ -1014,42 +1004,34 @@ export function useAuth() {
       return next;
     });
 
-    // 3. Clear active hostel ID if it was the deleted hostel
+    // 2. Clear active hostel ID if it was the deleted hostel
     if (activeHostelId === id) {
       setActiveHostelId(null);
     }
 
-    // 4. Cascade delete associated users (warden, students, staff)
+    // 3. Cascade delete associated users (warden, students, staff)
     const associatedUsers = allottedUsers.filter(u => u.hostelId === id);
     for (const u of associatedUsers) {
       await removeAllottedUser(u.id);
     }
 
-    // 5. Delete document from Firestore
+    // 4. Update Firestore with isRemoved: true and deleteDoc
     if (db) {
       try {
+        await updateDoc(doc(db, 'hostels', id), { isRemoved: true });
         await deleteDoc(doc(db, 'hostels', id));
       } catch (err) {
-        console.warn("Firestore hostel delete deferred (saved locally):", err);
+        console.warn("Firestore hostel delete deferred:", err);
       }
     }
   };
 
   const addAllottedUser = async (newUser: User) => {
     if (isDemoActive()) return;
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('hostelin_deleted_user_ids');
-        if (raw) {
-          const arr: string[] = JSON.parse(raw);
-          localStorage.setItem('hostelin_deleted_user_ids', JSON.stringify(arr.filter(id => id !== newUser.id)));
-        }
-      } catch (e) {}
-    }
-    setAllottedUsers(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
+    setAllottedUsers(prev => [...prev.filter(u => u.id !== newUser.id), { ...newUser, isRemoved: false }]);
     if (db) {
       try {
-        await setDoc(doc(db, 'users', newUser.id), newUser, { merge: true });
+        await setDoc(doc(db, 'users', newUser.id), { ...newUser, isRemoved: false }, { merge: true });
       } catch (err) {
         console.warn("Firestore user add deferred (saved locally):", err);
       }
@@ -1076,14 +1058,15 @@ export function useAuth() {
 
     if (user?.id === updatedUser.id || (user?.role === 'CHIEF_WARDEN' && updatedUser.role === 'CHIEF_WARDEN')) {
       localStorage.removeItem('hostelin_is_demo');
-    localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
+      localStorage.setItem('hostelin_auth', JSON.stringify(updatedUser));
       setUser(updatedUser);
     }
 
     if (db) {
       try {
         await setDoc(doc(db, 'users', updatedUser.id), updatedUser, { merge: true });
-        if (updatedUser.role === 'CHIEF_WARDEN' && updatedUser.id !== 'chief-warden-primary') {
+        if (updatedUser.role === 'CHIEF_WARDEN') {
+          // Always ensure chief-warden-primary has the latest authoritative record
           await setDoc(doc(db, 'users', 'chief-warden-primary'), updatedUser, { merge: true });
         }
       } catch (err) {
@@ -1108,27 +1091,25 @@ export function useAuth() {
   };
 
   const removeAllottedUser = async (id: string) => {
-    // 1. Track deleted ID in localStorage to prevent snapshot resurrection
+    // 1. Remove immediately from local state and storage
+    setAllottedUsers(prev => prev.filter(u => u.id !== id));
     if (typeof window !== 'undefined') {
       try {
-        const deletedRaw = localStorage.getItem('hostelin_deleted_user_ids');
-        const deletedArr: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
-        if (!deletedArr.includes(id)) {
-          deletedArr.push(id);
-          localStorage.setItem('hostelin_deleted_user_ids', JSON.stringify(deletedArr));
+        const saved = localStorage.getItem('hostelin_allotted_users');
+        if (saved) {
+          const list: User[] = JSON.parse(saved);
+          localStorage.setItem('hostelin_allotted_users', JSON.stringify(list.filter(u => u.id !== id)));
         }
       } catch (e) {}
     }
 
-    // 2. Remove immediately from local state and storage
-    setAllottedUsers(prev => prev.filter(u => u.id !== id));
-
-    // 3. Delete from Firestore
+    // 2. Mark isRemoved in Firestore for real-time synchronization, then delete document
     if (db) {
       try {
+        await updateDoc(doc(db, 'users', id), { isRemoved: true });
         await deleteDoc(doc(db, 'users', id));
       } catch (err) {
-        console.warn("Firestore user delete deferred (saved locally):", err);
+        console.warn("Firestore user delete deferred:", err);
       }
     }
   };
@@ -1200,7 +1181,7 @@ export function useAuth() {
 
   const exitDemoSession = () => {
     localStorage.removeItem('hostelin_is_demo');
-    const chief = allottedUsers.find(u => u.mobile === '9999999999') || DEFAULT_CHIEF_WARDEN;
+    const chief = allottedUsers.find(u => u.role === 'CHIEF_WARDEN' || u.id === 'chief-warden-primary') || DEFAULT_CHIEF_WARDEN;
     localStorage.setItem('hostelin_auth', JSON.stringify(chief));
     setUser(chief);
     setActiveHostelId(null);

@@ -1,10 +1,93 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Universal read and write access for all app collections
-    // Ensures real-time synchronization and permanent cloud persistence across all installs and iterations
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // System status flags (Session completion, allotment status)
+    match /system/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Active session presence tracking
+    match /activeSessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == sessionId;
+    }
+
+    // Shortlisted students during new session allotment
+    match /shortlistedStudents/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Hostels collection
+    match /hostels/{hostelId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+
+      // Sub-collections under each hostel
+      match /chatMessages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
+      match /expenditures/{expId} {
+        allow read, write: if isAuthenticated();
+      }
+      match /messMenu/{menuId} {
+        allow read, write: if isAuthenticated();
+      }
+      match /feedbacks/{feedbackId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Users registry (Chief Warden, Wardens, Students, Staff)
+    match /users/{userId} {
+      // Allow read so login verification & role lookup can check mobile number
+      allow read: if true;
+      // Allow write if authenticated (via Firebase Anonymous Auth / session)
+      allow write: if isAuthenticated();
+      
+      // User attendance subcollection
+      match /attendance/{attId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Rooms directory
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Attendance records
+    match /attendance/{recordId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Announcements
+    match /announcements/{annId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Complaints
+    match /complaints/{complaintId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Permissions (Leave / Gate Pass requests)
+    match /permissions/{permId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

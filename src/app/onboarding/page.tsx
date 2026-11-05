@@ -27,7 +27,8 @@ import {
   GraduationCap, 
   ZoomIn, 
   ZoomOut, 
-  Crop 
+  Crop,
+  Phone
 } from 'lucide-react';
 
 export default function OnboardingPage() {
@@ -38,7 +39,7 @@ export default function OnboardingPage() {
   // Chief Warden Profile fields
   const [chiefSalutation, setChiefSalutation] = useState('Dr.');
   const [chiefName, setChiefName] = useState(user?.name !== 'Chief Warden' ? (user?.name?.replace(/^(dr|mr|mrs|ms|prof)\.?\s+/i, '') || '') : '');
-  const chiefMobile = user?.mobile || '9999999999';
+  const [chiefMobile, setChiefMobile] = useState(user?.mobile && user.mobile !== '9999999999' ? user.mobile : '');
   const [institutionName, setInstitutionName] = useState(user?.institutionName || '');
   const [chiefPassword, setChiefPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -137,6 +138,23 @@ export default function OnboardingPage() {
       toast({ title: "Name Required", description: "Please enter your full name.", variant: "destructive" });
       return;
     }
+    const cleanMobile = chiefMobile.trim();
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      toast({ 
+        title: "Invalid Mobile Number", 
+        description: "Please enter your valid 10-digit Indian mobile number (starting with 6-9).", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    if (cleanMobile === '9999999999') {
+      toast({
+        title: "Official Mobile Required",
+        description: "Please replace the temporary bootstrap number (9999999999) with your real mobile number.",
+        variant: "destructive"
+      });
+      return;
+    }
     if (!institutionName.trim()) {
       toast({ title: "Institution Name Required", description: "Please enter your college/institution name.", variant: "destructive" });
       return;
@@ -164,7 +182,7 @@ export default function OnboardingPage() {
       const updatedChief: User = {
         id: user?.id || 'chief-warden-primary',
         name: `${chiefSalutation} ${chiefName.trim()}`,
-        mobile: chiefMobile.trim(),
+        mobile: cleanMobile,
         password: chiefPassword,
         institutionName: institutionName.trim(),
         role: 'CHIEF_WARDEN',
@@ -282,6 +300,30 @@ export default function OnboardingPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Chief Warden Official Mobile Number */}
+              <div className="space-y-2">
+                <Label htmlFor="chiefMobile" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Official Mobile Number (Permanent Login ID)
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="chiefMobile"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="e.g. 9876543210"
+                    value={chiefMobile}
+                    onChange={(e) => setChiefMobile(e.target.value.replace(/\D/g, ''))}
+                    required
+                    className="pl-10 h-11 bg-muted/20 font-medium tracking-wide"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Your permanent administrative mobile number. Once set, the temporary bootstrap number (9999999999) is permanently locked and cannot be used again.
+                </p>
               </div>
 
               {/* Institution / College Name Field */}
