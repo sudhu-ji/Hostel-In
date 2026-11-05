@@ -557,14 +557,16 @@ export function useAuth() {
         try {
           const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
           if (!qSnap.empty) {
-            const uDoc = qSnap.docs[0];
-            const uData = { ...(uDoc.data() as any), id: uDoc.id } as User;
-            if (uData.role === 'CHIEF_WARDEN' || uData.id === 'chief-warden-primary') {
-              chiefUser = uData;
-            } else {
-              regularUser = uData;
+            const activeDoc = qSnap.docs.find(d => !d.data().isRemoved) || qSnap.docs[0];
+            const uData = { ...(activeDoc.data() as any), id: activeDoc.id } as User;
+            if (!uData.isRemoved) {
+              if (uData.role === 'CHIEF_WARDEN' || uData.id === 'chief-warden-primary') {
+                chiefUser = uData;
+              } else {
+                regularUser = uData;
+              }
+              setAllottedUsers(prev => [...prev.filter(u => u.id !== uData.id), uData]);
             }
-            setAllottedUsers(prev => [...prev.filter(u => u.id !== uData.id), uData]);
           }
         } catch (e) {
           console.warn("Direct Firestore lookup by user mobile failed:", e);
@@ -708,7 +710,10 @@ export function useAuth() {
       try {
         const qSnap = await getDocs(query(collection(db, 'users'), where('mobile', '==', clean)));
         if (!qSnap.empty) {
-          targetUser = { ...qSnap.docs[0].data(), id: qSnap.docs[0].id } as User;
+          const activeDoc = qSnap.docs.find(d => !d.data().isRemoved);
+          if (activeDoc) {
+            targetUser = { ...activeDoc.data(), id: activeDoc.id } as User;
+          }
         } else {
           const hSnap = await getDocs(query(collection(db, 'hostels'), where('wardenMobile', '==', clean)));
           if (!hSnap.empty) {
